@@ -18,6 +18,7 @@ import { BazaarPanel } from "./BazaarPanel";
 import { InteropPanel } from "./InteropPanel";
 import { MeshGraph } from "./MeshGraph";
 import { ProtocolLog } from "./ProtocolLog";
+import { SymbolPicker } from "./SymbolPicker";
 import { OrderPreviewPanel } from "./OrderPreviewPanel";
 import { ReportPanel } from "./ReportPanel";
 import { RunStats } from "./RunStats";
@@ -57,19 +58,10 @@ export function MeshConsole() {
       <Card className="mt-7">
         <CardBody className="flex flex-col gap-4 sm:flex-row sm:items-end">
           <div className="flex-1">
-            <label
-              htmlFor="symbol"
-              className="block text-[11px] font-medium text-[var(--muted)]"
-            >
-              Trading pair
-            </label>
-            <input
-              id="symbol"
+            <SymbolPicker
               value={symbol}
-              onChange={(event) => setSymbol(event.target.value.toUpperCase())}
+              onChange={setSymbol}
               disabled={running}
-              spellCheck={false}
-              className="numeric mt-1.5 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--surface-raised)] px-3.5 py-2.5 text-[13px] font-medium outline-none transition-shadow focus:border-[var(--brand)] focus:shadow-[0_0_0_3px_var(--brand-ring)] disabled:opacity-60"
             />
             <div className="mt-2 flex flex-wrap gap-1.5">
               {SUGGESTED_SYMBOLS.map((option) => (
@@ -181,7 +173,9 @@ export function MeshConsole() {
           </CardBody>
         </Card>
 
-        <Card>
+        {/* Flex column so the log's scroll area can claim the leftover height
+            the grid row gives this card, rather than leaving it blank. */}
+        <Card className="flex flex-col">
           <CardHeader
             title="Protocol log"
             description="Raw x402 events, newest last."

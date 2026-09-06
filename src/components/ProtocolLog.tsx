@@ -114,7 +114,7 @@ export function ProtocolLog({
     return (
       <div
         className={cn(
-          "flex h-full min-h-40 items-center justify-center px-5 py-8",
+          "flex min-h-40 flex-1 items-center justify-center px-5 py-8",
           "text-[12px] text-[var(--subtle)]",
           className,
         )}
@@ -125,8 +125,15 @@ export function ProtocolLog({
   }
 
   return (
+    // Fills the card instead of capping at a fixed height. The card sits in a
+    // grid row alongside the taller Agents card, so a max-height here left dead
+    // space below the scroll area — min-h-0 lets this flex child actually shrink
+    // so overflow-y-auto scrolls the full available region.
     <div
-      className={cn("max-h-[22rem] overflow-y-auto px-5 py-4", className)}
+      className={cn(
+        "min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4",
+        className,
+      )}
       role="log"
       aria-live="polite"
     >
