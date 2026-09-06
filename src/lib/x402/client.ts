@@ -49,6 +49,41 @@ export class PaymentError extends Error {
   }
 }
 
+/**
+ * Reads payment requirements from a 402 response.
+ *
+ * The PAYMENT-REQUIRED header wins over the body, because real endpoints on
+ * Binance's B402 Bazaar carry different content in each: their body advertises
+ * x402 v1 on Base for backward compatibility, while the header carries v2 with
+ * additional options including BNB Smart Chain and eip3009. Reading only the
+ * body — which this client originally did — makes an otherwise payable endpoint
+ * look unsupported.
+ */
+async function readChallenge(
+  response: Response,
+): Promise<PaymentRequiredResponse> {
+  const header = response.headers.get(X402_HEADERS.required);
+
+  if (header) {
+    try {
+      const decoded = decodeHeader<PaymentRequiredResponse>(header);
+      if (decoded.accepts?.length) return decoded;
+    } catch {
+      // Malformed header — the body is still worth trying.
+    }
+  }
+
+  try {
+    return (await response.json()) as PaymentRequiredResponse;
+  } catch {
+    throw new PaymentError(
+      "402 response carried no readable payment requirements",
+      "malformed_challenge",
+      402,
+    );
+  }
+}
+
 /** Picks the requirement this client can actually satisfy. */
 function selectRequirements(
   accepts: PaymentRequirements[],
@@ -97,7 +132,7 @@ export async function paidFetch<T>(
     };
   }
 
-  const challenge = (await first.json()) as PaymentRequiredResponse;
+  const challenge = await readChallenge(first);
   const requirements = selectRequirements(challenge.accepts ?? []);
   hooks.onQuote?.(requirements);
 

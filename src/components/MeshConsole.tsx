@@ -15,6 +15,7 @@ import { AGENT_LIST } from "@/lib/agents/registry";
 import type { ReportResult } from "@/lib/agents/analysis";
 import { AgentCard } from "./AgentCard";
 import { BazaarPanel } from "./BazaarPanel";
+import { InteropPanel } from "./InteropPanel";
 import { MeshGraph } from "./MeshGraph";
 import { ProtocolLog } from "./ProtocolLog";
 import { OrderPreviewPanel } from "./OrderPreviewPanel";
@@ -157,6 +158,14 @@ export function MeshConsole() {
           <BazaarPanel bazaar={state.bazaar} />
         </Card>
       </div>
+
+      <Card className="mt-5">
+        <CardHeader
+          title="Cross-vendor interoperability"
+          description="Our client reading strangers' 402 challenges, live."
+        />
+        <InteropPanel />
+      </Card>
 
       {/* Agents and log. */}
       <div className="mt-5 grid gap-5 lg:grid-cols-2">
