@@ -1,292 +1,218 @@
 "use client";
 
 /**
- * Interactive grid backdrop.
+ * Interactive grid backdrop, neo-brutalist tiles.
  *
- * Tiles near the cursor lift, then spring back down when it leaves. Drawn on one
- * canvas rather than a few hundred DOM nodes: transforming that many elements
- * per frame drops frames on a laptop, while a single canvas stays at 60fps and
- * lets the particles share the same loop.
+ * Each tile rests almost flat, then lifts toward the cursor with a hard black
+ * offset shadow and tilts in 3D around the point the cursor sits over — with the
+ * cursor to a tile's left, its left edge comes forward and the tile appears to
+ * lean right.
  *
- * The static grid lines stay in CSS (`.grid-backdrop`), so the layout still looks
- * right before this mounts and with JavaScript disabled. This layer only adds
- * what needs to move: tile lift, cursor light, and drifting motes.
+ * Driven from one pointer listener rather than CSS `:hover`. The hero's headline
+ * and buttons sit above this layer, and `:hover` would leave a dead zone wherever
+ * text covers a tile; one listener keeps the whole surface responsive.
+ *
+ * Tiles are real DOM nodes because the effect needs per-tile 3D transforms and
+ * box shadows, which a canvas cannot express. Cost stays low by writing styles
+ * only for tiles inside the cursor's radius — roughly 25 of ~300 per frame — and
+ * writing a resting state once as each one settles.
  */
 
 import { useEffect, useRef } from "react";
 
-/** Matches the 56px background-size of `.grid-backdrop` so tiles align to it. */
+/** Matches the 56px background-size of `.grid-backdrop` so tiles sit on the lines. */
 const CELL = 56;
 
-/** How far the cursor's influence reaches, in pixels. */
-const INFLUENCE = 168;
+/** Inset inside each cell, leaving the underlying grid line visible as a gutter. */
+const INSET = 3;
 
-/** Peak lift of a tile directly under the cursor. */
-const MAX_LIFT_PX = 7;
+/** Reach of the cursor's influence, in pixels. */
+const INFLUENCE = 150;
 
-/**
- * Spring constants. Stiffness sets how eagerly a tile rises; damping below 1
- * leaves a little overshoot so tiles settle rather than snap — that slight
- * bounce is what makes the surface read as physical.
- */
-const STIFFNESS = 0.14;
-const DAMPING = 0.82;
+/** Peak values for a tile directly under the cursor. */
+const MAX_SHIFT_PX = 4;
+const MAX_SHADOW_PX = 9;
+const MAX_LIFT_Z = 26;
+const MAX_TILT_DEG = 14;
 
-/** Below this the tile is treated as resting and skipped. */
-const REST_EPSILON = 0.0015;
+/** Spring constants. Damping under 1 leaves slight overshoot so tiles settle. */
+const STIFFNESS = 0.16;
+const DAMPING = 0.78;
 
-const PARTICLE_COUNT = 26;
+/** Below this a tile counts as resting and stops being written to. */
+const REST_EPSILON = 0.002;
 
-interface Particle {
-  x: number;
-  y: number;
-  /** Radius in CSS pixels. */
-  radius: number;
-  /** Upward drift, px per second. */
-  speed: number;
-  /** Horizontal sway offset and rate. */
-  phase: number;
-  sway: number;
-  alpha: number;
+/** Resting shadow and border, near-invisible against the white hero. */
+const REST_SHADOW = "2px 2px 0 rgba(10,22,40,0.045)";
+const REST_BORDER = "rgba(10,22,40,0.05)";
+
+interface Tile {
+  element: HTMLDivElement;
+  /** Centre in layer coordinates, for distance and tilt maths. */
+  centreX: number;
+  centreY: number;
+  /** Current lift, 0..1. */
+  lift: number;
+  velocity: number;
+  /** Smoothed tilt in degrees, so direction changes ease rather than snap. */
+  tiltX: number;
+  tiltY: number;
+  /** Whether the resting style has already been written. */
+  resting: boolean;
 }
 
 export function GridBackdrop() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const hostRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const host = hostRef.current;
+    if (!host) return;
 
-    const context = canvas.getContext("2d", { alpha: true });
-    if (!context) return;
-
-    // Honour the OS setting: paint the grid once, statically, and stop.
     const reduceMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
 
+    let tiles: Tile[] = [];
     let width = 0;
     let height = 0;
-    let columns = 0;
-    let rows = 0;
+    let frame = 0;
 
-    /** Current lift per tile, 0..1, row-major. */
-    let lift = new Float32Array(0);
-    /** Velocity per tile, for the spring. */
-    let velocity = new Float32Array(0);
-
-    let particles: Particle[] = [];
-
-    // Off-canvas by default so nothing lifts until the pointer actually arrives.
+    // Off-layer until the pointer actually arrives, so nothing lifts on load.
     let pointerX = -9999;
     let pointerY = -9999;
     let pointerInside = false;
 
-    let frame = 0;
-    let lastTime = performance.now();
-
-    function seedParticles() {
-      particles = Array.from({ length: PARTICLE_COUNT }, () => ({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        radius: 0.7 + Math.random() * 1.5,
-        speed: 5 + Math.random() * 14,
-        phase: Math.random() * Math.PI * 2,
-        sway: 0.25 + Math.random() * 0.55,
-        alpha: 0.16 + Math.random() * 0.3,
-      }));
+    /**
+     * Fades tiles out toward the bottom, matching the CSS mask on the static grid
+     * so the two layers blend instead of stacking into a hard edge.
+     */
+    function verticalFade(y: number): number {
+      return Math.max(0, 1 - Math.min(1, y / height) * 1.3);
     }
 
-    function resize() {
-      const rect = canvas!.getBoundingClientRect();
-      // Cap DPR at 2: beyond that the extra pixels cost fill rate and buy nothing
-      // visible for shapes this soft.
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-
+    function build() {
+      const rect = host!.getBoundingClientRect();
       width = rect.width;
       height = rect.height;
 
-      canvas!.width = Math.max(1, Math.round(width * dpr));
-      canvas!.height = Math.max(1, Math.round(height * dpr));
-      context!.setTransform(dpr, 0, 0, dpr, 0, 0);
+      host!.textContent = "";
+      tiles = [];
 
-      columns = Math.ceil(width / CELL) + 1;
-      rows = Math.ceil(height / CELL) + 1;
+      const columns = Math.ceil(width / CELL);
+      const rows = Math.ceil(height / CELL);
 
-      lift = new Float32Array(columns * rows);
-      velocity = new Float32Array(columns * rows);
-
-      seedParticles();
-    }
-
-    /**
-     * Fades the whole layer out toward the bottom, matching the CSS mask on the
-     * static grid so the two blend instead of stacking into a hard edge.
-     */
-    function verticalFade(y: number): number {
-      const t = Math.min(1, Math.max(0, y / height));
-      return Math.max(0, 1 - t * 1.35);
-    }
-
-    function drawTiles() {
-      const ctx = context!;
+      const fragment = document.createDocumentFragment();
 
       for (let row = 0; row < rows; row += 1) {
         for (let column = 0; column < columns; column += 1) {
-          const index = row * columns + column;
-          const amount = lift[index];
-          if (amount < REST_EPSILON) continue;
-
           const x = column * CELL;
           const y = row * CELL;
 
-          const fade = verticalFade(y);
-          if (fade <= 0) continue;
+          // Skip tiles the mask would hide anyway.
+          if (verticalFade(y) <= 0) continue;
 
-          // Lift reads as a tile rising toward the light: it shifts up, brightens,
-          // and gains a soft shadow underneath.
-          const rise = amount * MAX_LIFT_PX;
-          const inset = 1.5;
-          const size = CELL - inset * 2;
+          const element = document.createElement("div");
+          element.style.cssText =
+            `position:absolute;left:${x + INSET}px;top:${y + INSET}px;` +
+            `width:${CELL - INSET * 2}px;height:${CELL - INSET * 2}px;` +
+            `border-radius:7px;background:#fff;` +
+            `border:1px solid ${REST_BORDER};box-shadow:${REST_SHADOW};` +
+            `transform-style:preserve-3d;will-change:transform,box-shadow;`;
 
-          ctx.save();
-          ctx.translate(x + inset, y + inset - rise);
-
-          // Shadow cast down onto the surface below.
-          ctx.fillStyle = `rgba(10, 22, 40, ${0.05 * amount * fade})`;
-          ctx.beginPath();
-          ctx.roundRect(0, rise * 0.6, size, size, 7);
-          ctx.fill();
-
-          // Tile face, tinted with the brand blue.
-          ctx.fillStyle = `rgba(11, 99, 246, ${0.055 * amount * fade})`;
-          ctx.beginPath();
-          ctx.roundRect(0, 0, size, size, 7);
-          ctx.fill();
-
-          // Top edge highlight, the specular hint that sells the lift.
-          ctx.strokeStyle = `rgba(11, 99, 246, ${0.3 * amount * fade})`;
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.roundRect(0.5, 0.5, size - 1, size - 1, 7);
-          ctx.stroke();
-
-          ctx.restore();
+          fragment.appendChild(element);
+          tiles.push({
+            element,
+            centreX: x + CELL / 2,
+            centreY: y + CELL / 2,
+            lift: 0,
+            velocity: 0,
+            tiltX: 0,
+            tiltY: 0,
+            resting: true,
+          });
         }
       }
+
+      host!.appendChild(fragment);
     }
 
-    /** Soft radial glow following the cursor. */
-    function drawCursorLight() {
-      if (!pointerInside) return;
-      const ctx = context!;
-
-      const fade = verticalFade(pointerY);
-      if (fade <= 0) return;
-
-      const gradient = ctx.createRadialGradient(
-        pointerX,
-        pointerY,
-        0,
-        pointerX,
-        pointerY,
-        INFLUENCE * 1.15,
-      );
-      gradient.addColorStop(0, `rgba(11, 99, 246, ${0.09 * fade})`);
-      gradient.addColorStop(0.45, `rgba(11, 99, 246, ${0.035 * fade})`);
-      gradient.addColorStop(1, "rgba(11, 99, 246, 0)");
-
-      ctx.fillStyle = gradient;
-      ctx.fillRect(
-        pointerX - INFLUENCE * 1.2,
-        pointerY - INFLUENCE * 1.2,
-        INFLUENCE * 2.4,
-        INFLUENCE * 2.4,
-      );
+    /** Writes the neutral style once, when a tile finishes settling. */
+    function rest(tile: Tile) {
+      tile.element.style.transform = "";
+      tile.element.style.boxShadow = REST_SHADOW;
+      tile.element.style.borderColor = REST_BORDER;
+      tile.element.style.zIndex = "";
+      tile.resting = true;
     }
 
-    function drawParticles(deltaSeconds: number, time: number) {
-      const ctx = context!;
+    function render() {
+      for (const tile of tiles) {
+        let target = 0;
+        let tiltTargetX = 0;
+        let tiltTargetY = 0;
 
-      for (const particle of particles) {
-        particle.y -= particle.speed * deltaSeconds;
-        // Recycle at the bottom once a mote drifts off the top.
-        if (particle.y < -8) {
-          particle.y = height + 8;
-          particle.x = Math.random() * width;
-        }
-
-        const drift =
-          Math.sin(time * 0.00042 * particle.sway + particle.phase) * 12;
-        const x = particle.x + drift;
-        const fade = verticalFade(particle.y);
-        if (fade <= 0) continue;
-
-        // Motes brighten near the cursor, tying them to the interaction.
-        let boost = 1;
         if (pointerInside) {
-          const distance = Math.hypot(x - pointerX, particle.y - pointerY);
+          const dx = pointerX - tile.centreX;
+          const dy = pointerY - tile.centreY;
+          const distance = Math.hypot(dx, dy);
+
           if (distance < INFLUENCE) {
-            boost = 1 + (1 - distance / INFLUENCE) * 1.6;
+            // Cosine falloff: flat-topped near the cursor, easing to zero at the
+            // edge, so the influence circle shows no visible rim.
+            target = (Math.cos((distance / INFLUENCE) * Math.PI) + 1) / 2;
+
+            // Tilt away from the cursor. rotateY follows horizontal offset and
+            // rotateX inverts vertical offset, so the edge nearest the cursor
+            // comes forward — cursor on the left tilts the tile to lean right.
+            const reach = INFLUENCE * 0.75;
+            tiltTargetX =
+              (-dy / reach) * MAX_TILT_DEG * target * -1;
+            tiltTargetY = (dx / reach) * MAX_TILT_DEG * target * -1;
           }
         }
 
-        ctx.fillStyle = `rgba(11, 99, 246, ${Math.min(0.55, particle.alpha * boost * fade)})`;
-        ctx.beginPath();
-        ctx.arc(x, particle.y, particle.radius, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
+        const displacement = target - tile.lift;
+        tile.velocity = (tile.velocity + displacement * STIFFNESS) * DAMPING;
+        tile.lift = Math.min(1, Math.max(0, tile.lift + tile.velocity));
 
-    /** Advances every tile's spring one step. */
-    function stepSprings() {
-      for (let row = 0; row < rows; row += 1) {
-        const centreY = row * CELL + CELL / 2;
+        // Ease the tilt separately so swinging the cursor across a tile does not
+        // flip its lean instantly.
+        tile.tiltX += (tiltTargetX - tile.tiltX) * 0.18;
+        tile.tiltY += (tiltTargetY - tile.tiltY) * 0.18;
 
-        for (let column = 0; column < columns; column += 1) {
-          const index = row * columns + column;
-          const centreX = column * CELL + CELL / 2;
-
-          let target = 0;
-          if (pointerInside) {
-            const distance = Math.hypot(centreX - pointerX, centreY - pointerY);
-            if (distance < INFLUENCE) {
-              // Cosine falloff: flat-topped near the cursor, easing to zero at
-              // the edge, which avoids a visible rim on the influence circle.
-              const normalised = distance / INFLUENCE;
-              target = (Math.cos(normalised * Math.PI) + 1) / 2;
-            }
-          }
-
-          const displacement = target - lift[index];
-          velocity[index] = (velocity[index] + displacement * STIFFNESS) * DAMPING;
-          lift[index] += velocity[index];
-
-          if (lift[index] < 0) lift[index] = 0;
-          else if (lift[index] > 1) lift[index] = 1;
+        if (tile.lift < REST_EPSILON) {
+          if (!tile.resting) rest(tile);
+          continue;
         }
+
+        const amount = tile.lift * verticalFade(tile.centreY);
+        if (amount <= 0) {
+          if (!tile.resting) rest(tile);
+          continue;
+        }
+
+        const shift = amount * MAX_SHIFT_PX;
+        const shadow = 2 + amount * MAX_SHADOW_PX;
+
+        const style = tile.element.style;
+        // Move up-left and forward in Z, then tilt: the classic hard-shadow lift.
+        style.transform =
+          `perspective(620px) translate3d(${-shift}px,${-shift}px,${amount * MAX_LIFT_Z}px) ` +
+          `rotateX(${tile.tiltX.toFixed(2)}deg) rotateY(${tile.tiltY.toFixed(2)}deg)`;
+        style.boxShadow =
+          `${shadow.toFixed(1)}px ${shadow.toFixed(1)}px 0 rgba(10,22,40,${(0.055 + amount * 0.5).toFixed(3)})`;
+        style.borderColor = `rgba(10,22,40,${(0.05 + amount * 0.55).toFixed(3)})`;
+        style.zIndex = String(1 + Math.round(amount * 10));
+        tile.resting = false;
       }
-    }
-
-    function render(time: number) {
-      const deltaSeconds = Math.min(0.05, (time - lastTime) / 1000);
-      lastTime = time;
-
-      context!.clearRect(0, 0, width, height);
-
-      stepSprings();
-      drawCursorLight();
-      drawTiles();
-      drawParticles(deltaSeconds, time);
 
       frame = requestAnimationFrame(render);
     }
 
     function onPointerMove(event: PointerEvent) {
-      const rect = canvas!.getBoundingClientRect();
+      const rect = host!.getBoundingClientRect();
       pointerX = event.clientX - rect.left;
       pointerY = event.clientY - rect.top;
-      // Only treat the pointer as present while it is over the backdrop.
       pointerInside =
         pointerX >= 0 && pointerX <= width && pointerY >= 0 && pointerY <= height;
     }
@@ -295,20 +221,22 @@ export function GridBackdrop() {
       pointerInside = false;
     }
 
-    resize();
+    build();
 
-    const observer = new ResizeObserver(resize);
-    observer.observe(canvas);
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      build();
+      if (!reduceMotion) frame = requestAnimationFrame(render);
+    });
+    observer.observe(host);
 
+    // A static grid with no motion satisfies the reduced-motion preference.
     if (reduceMotion) {
-      // One static pass: particles at rest, no springs, no loop.
-      context.clearRect(0, 0, width, height);
-      drawParticles(0, 0);
       return () => observer.disconnect();
     }
 
-    // Listen on the window so the effect keeps tracking across the content that
-    // sits above the canvas, which is pointer-events:none.
+    // Listen on the window: the headline and buttons sit above this layer, and a
+    // per-tile hover would go dead wherever content covers a tile.
     window.addEventListener("pointermove", onPointerMove, { passive: true });
     window.addEventListener("pointerleave", onPointerLeave);
     window.addEventListener("blur", onPointerLeave);
@@ -325,10 +253,11 @@ export function GridBackdrop() {
   }, []);
 
   return (
-    <canvas
-      ref={canvasRef}
+    <div
+      ref={hostRef}
       aria-hidden
-      className="pointer-events-none absolute inset-0 size-full"
+      className="pointer-events-none absolute inset-0 overflow-hidden"
+      style={{ perspective: "620px" }}
     />
   );
 }
