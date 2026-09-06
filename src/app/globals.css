@@ -1,26 +1,153 @@
 @import "tailwindcss";
 
+/**
+ * AgentMesh design tokens.
+ *
+ * Blue and white, light only. A payment dashboard is read in daylight and
+ * screenshotted into decks, so a dark variant would double the surface area for
+ * no gain here.
+ */
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --surface: #f6f9fe;
+  --surface-raised: #ffffff;
+  --foreground: #0a1628;
+  --muted: #5b6b85;
+  --subtle: #8a99b3;
+  --border: #e3eaf5;
+  --border-strong: #cfdcf0;
+
+  --brand: #0b63f6;
+  --brand-hover: #0a56d8;
+  --brand-soft: #e8f0fe;
+  --brand-ring: rgba(11, 99, 246, 0.16);
+
+  --success: #0f9d58;
+  --success-soft: #e6f6ee;
+  --warning: #b7791f;
+  --warning-soft: #fdf6e3;
+  --danger: #d93025;
+  --danger-soft: #fdecea;
+
+  /* Per-agent accents for the node graph. */
+  --accent-market: #0b63f6;
+  --accent-depth: #6d3ff5;
+  --accent-sentiment: #0f9d58;
+  --accent-risk: #d97706;
+  --accent-report: #0d9488;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
   --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-border-base: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-soft: var(--brand-soft);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  border-color: var(--border);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tabular figures keep streaming prices from shifting layout as digits change. */
+.numeric {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Ambient grid, anchoring the hero without competing with content. */
+.grid-backdrop {
+  background-image:
+    linear-gradient(to right, var(--border) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 78% 62% at 50% 0%, #000 38%, transparent 78%);
+}
+
+/* Payment pulse on an agent node while its settlement is in flight. */
+@keyframes settle-pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--brand-ring);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgba(11, 99, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(11, 99, 246, 0);
+  }
+}
+
+.settling {
+  animation: settle-pulse 1.6s ease-out infinite;
+}
+
+/* Value flowing along an edge between two agents. */
+@keyframes flow-dash {
+  to {
+    stroke-dashoffset: -32;
+  }
+}
+
+.edge-flowing {
+  stroke-dasharray: 5 9;
+  animation: flow-dash 0.9s linear infinite;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rise-in {
+  animation: rise-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settling,
+  .edge-flowing,
+  .rise-in {
+    animation: none;
+  }
+}
+
+::selection {
+  background: var(--brand-soft);
+  color: var(--brand-hover);
+}
+
+/* Focus ring: visible for keyboard users, quiet for mouse users. */
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
 }
