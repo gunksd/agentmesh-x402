@@ -1,7 +1,35 @@
+<div align="center">
+
+<img src="src/app/icon.svg" alt="AgentMesh" width="96" height="96">
+
 # AgentMesh
 
+**Agents that hire each other, and settle the bill on-chain.**
+
 A network of specialist AI agents that sell their work over HTTP and get paid per
-request, on-chain, with no human in the loop.
+request — no subscriptions, no invoices, no human in the loop.
+
+[![Live demo](https://img.shields.io/badge/demo-agentmesh--x402.vercel.app-0B63F6?style=flat-square&logo=vercel&logoColor=white)](https://agentmesh-x402.vercel.app)
+[![x402](https://img.shields.io/badge/x402-v2-0B63F6?style=flat-square)](https://github.com/coinbase/x402)
+[![BNB Chain](https://img.shields.io/badge/BNB%20Smart%20Chain-testnet-F0B90B?style=flat-square&logo=binance&logoColor=white)](https://testnet.bscscan.com/)
+[![Binance Agent OS](https://img.shields.io/badge/Binance-Agent%20OS-0B63F6?style=flat-square&logo=binance&logoColor=white)](https://www.binance.com/en/agent-os)
+
+[![Next.js 16](https://img.shields.io/badge/Next.js-16-000000?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![viem](https://img.shields.io/badge/viem-2.x-1B1B1F?style=flat-square)](https://viem.sh)
+[![Permit2](https://img.shields.io/badge/Permit2-EIP--712-FF007A?style=flat-square)](https://github.com/Uniswap/permit2)
+[![Cost per run](https://img.shields.io/badge/cost%20per%20run-%240.115-0F9D58?style=flat-square)](#what-actually-runs)
+[![Human approvals](https://img.shields.io/badge/human%20approvals-0-0F9D58?style=flat-square)](#what-actually-runs)
+[![License](https://img.shields.io/badge/license-MIT-8A99B3?style=flat-square)](LICENSE)
+
+[Live demo](https://agentmesh-x402.vercel.app) ·
+[How it works](#how-a-payment-happens) ·
+[What's verified](#what-actually-runs) ·
+[Run it locally](#running-it)
+
+</div>
+
+---
 
 An orchestrator discovers what it needs, requests a resource, receives
 `402 Payment Required`, signs an EIP-712 Permit2 authorisation offline, and the
@@ -27,29 +55,9 @@ concurrently and landed in the same block (129478811).
 
 ## How a payment happens
 
-```
-Orchestrator                Agent                     Facilitator            BSC
-     │                        │                            │                  │
-     ├── GET /market-data ───►│                            │                  │
-     │                        │                            │                  │
-     │◄── 402 + requirements ─┤                            │                  │
-     │    amount, asset, payTo, extra.spenderAddress       │                  │
-     │                        │                            │                  │
-     ├─ sign EIP-712 locally  │                            │                  │
-     │  (no RPC, no gas)      │                            │                  │
-     │                        │                            │                  │
-     ├── retry + signature ──►│                            │                  │
-     │                        ├──── POST /verify ─────────►│                  │
-     │                        │◄─── isValid ───────────────┤  (off-chain)     │
-     │                        │                            │                  │
-     │                        ├──── POST /settle ─────────►│                  │
-     │                        │                            ├─ permitWitness ─►│
-     │                        │                            │  (gas sponsored) │
-     │                        │◄─── tx hash ───────────────┤                  │
-     │                        │                            │                  │
-     │◄── 200 + data ─────────┤                            │                  │
-     │    PAYMENT-RESPONSE header carries the receipt      │                  │
-```
+<div align="center">
+  <img src="docs/payment-flow.svg" alt="The seven steps of an x402 payment in AgentMesh: discover, quote, sign, retry, verify, settle, deliver" width="100%">
+</div>
 
 Verification runs before settlement deliberately: checking a signature is free and
 catches bad authorisations before gas is spent, while settlement is the
@@ -150,3 +158,21 @@ scripts/               compile, wallet generation, deploy
 Demo software, testnet by default, not audited. The agents do deterministic maths
 over live market data rather than model inference, so a reviewer re-running the
 demo gets reproducible output. Nothing here is financial advice.
+
+## Star history
+
+<div align="center">
+
+<a href="https://star-history.com/#gunksd/agentmesh-x402&Date">
+  <img src="https://api.star-history.com/svg?repos=gunksd/agentmesh-x402&type=Date" alt="Star history chart for gunksd/agentmesh-x402" width="600">
+</a>
+
+</div>
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+<div align="center">
+<sub>Built with Binance Agent OS · x402 v2 on BNB Smart Chain</sub>
+</div>

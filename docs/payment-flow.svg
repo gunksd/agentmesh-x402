@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" font-family="'Comic Sans MS', 'Segoe Print', 'Bradley Hand', Chalkboard, cursive" role="img" aria-label="AgentMesh x402 payment flow">
+  <title>How a payment happens in AgentMesh</title>
+
+  <!--
+    Hand-drawn style diagram, Excalidraw look.
+
+    The sketchy feel comes from three things, since we cannot use Excalidraw's
+    roughness algorithm directly: every box is a hand-plotted path with corners
+    that miss slightly rather than a <rect>, strokes use round caps and joins,
+    and each shape carries a faint offset shadow copy to mimic the double-stroke
+    of a pen going round twice.
+  -->
+
+  <defs>
+    <marker id="tip" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0.5 1 L9.5 5 L0.5 9" fill="none" stroke="#0A1628" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <marker id="tipBlue" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0.5 1 L9.5 5 L0.5 9" fill="none" stroke="#0B63F6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <marker id="tipGreen" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0.5 1 L9.5 5 L0.5 9" fill="none" stroke="#0F9D58" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <rect width="900" height="560" fill="#FFFFFF"/>
+
+  <!-- ============ Lane headers ============ -->
+  <g font-size="15" fill="#0A1628" text-anchor="middle">
+    <text x="108" y="42">Orchestrator</text>
+    <text x="360" y="42">Agent</text>
+    <text x="602" y="42">Facilitator</text>
+    <text x="820" y="42">BNB Chain</text>
+  </g>
+  <g font-size="10.5" fill="#8A99B3" text-anchor="middle">
+    <text x="108" y="58">the payer</text>
+    <text x="360" y="58">sells one skill</text>
+    <text x="602" y="58">verify + settle</text>
+    <text x="820" y="58">Permit2</text>
+  </g>
+
+  <!-- Lane lines, wobbled so they read as drawn by hand. -->
+  <g stroke="#CFDCF0" stroke-width="1.6" stroke-linecap="round" fill="none">
+    <path d="M108 70 C110 180, 106 300, 108 496"/>
+    <path d="M360 70 C362 180, 358 300, 360 496"/>
+    <path d="M602 70 C604 180, 600 300, 602 496"/>
+    <path d="M820 70 C822 180, 818 300, 820 496"/>
+  </g>
+
+  <!-- ============ Step 1: discovery ============ -->
+  <g>
+    <path d="M22 92 C120 89, 250 90, 336 92 C340 108, 339 120, 336 134 C240 137, 118 136, 22 134 C19 118, 20 106, 22 92 Z"
+          fill="#F6F9FE" stroke="#CFDCF0" stroke-width="1.4" transform="translate(2,2)"/>
+    <path d="M22 92 C120 89, 250 90, 336 92 C340 108, 339 120, 336 134 C240 137, 118 136, 22 134 C19 118, 20 106, 22 92 Z"
+          fill="#F6F9FE" stroke="#0B63F6" stroke-width="1.9" stroke-linejoin="round"/>
+    <text x="36" y="116" font-size="12.5" fill="#0A1628">1. discover paid services on B402 Bazaar</text>
+  </g>
+  <text x="352" y="116" font-size="10.5" fill="#8A99B3">public API, no key</text>
+
+  <!-- ============ Step 2: 402 quote ============ -->
+  <path d="M112 168 C190 165, 268 167, 352 168" fill="none" stroke="#0A1628" stroke-width="2" stroke-linecap="round" marker-end="url(#tip)"/>
+  <text x="130" y="160" font-size="12" fill="#0A1628">GET /market-data</text>
+
+  <path d="M356 200 C272 203, 194 201, 114 200" fill="none" stroke="#B7791F" stroke-width="2.2" stroke-linecap="round" marker-end="url(#tip)"/>
+  <text x="132" y="192" font-size="12" fill="#B7791F">2. HTTP 402 Payment Required</text>
+  <text x="132" y="216" font-size="10.5" fill="#8A99B3">amount · asset · network · Permit2 spender</text>
+
+  <!-- ============ Step 3: local signature ============ -->
+  <g>
+    <path d="M24 244 C74 241, 140 242, 190 244 C194 262, 193 282, 190 300 C138 303, 76 302, 24 300 C21 280, 22 262, 24 244 Z"
+          fill="#E8F0FE" stroke="#CFDCF0" stroke-width="1.4" transform="translate(2,2)"/>
+    <path d="M24 244 C74 241, 140 242, 190 244 C194 262, 193 282, 190 300 C138 303, 76 302, 24 300 C21 280, 22 262, 24 244 Z"
+          fill="#E8F0FE" stroke="#0B63F6" stroke-width="1.9" stroke-linejoin="round"/>
+    <text x="38" y="266" font-size="12.5" fill="#0A1628">3. sign EIP-712</text>
+    <text x="38" y="284" font-size="10.5" fill="#5B6B85">no RPC · no gas · ~2ms</text>
+  </g>
+
+  <!-- Self-loop showing the signature never leaves the payer. -->
+  <path d="M108 306 C150 316, 152 330, 112 338" fill="none" stroke="#0B63F6" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="5 5" marker-end="url(#tipBlue)"/>
+
+  <!-- ============ Step 4: replay with signature ============ -->
+  <path d="M112 360 C190 357, 268 359, 352 360" fill="none" stroke="#0B63F6" stroke-width="2.2" stroke-linecap="round" marker-end="url(#tipBlue)"/>
+  <text x="128" y="352" font-size="12" fill="#0B63F6">4. retry + PAYMENT-SIGNATURE</text>
+
+  <!-- ============ Step 5: verify off-chain ============ -->
+  <path d="M366 392 C440 389, 520 391, 594 392" fill="none" stroke="#0A1628" stroke-width="2" stroke-linecap="round" marker-end="url(#tip)"/>
+  <text x="392" y="384" font-size="12" fill="#0A1628">5. POST /verify</text>
+
+  <path d="M598 420 C524 423, 442 421, 368 420" fill="none" stroke="#0A1628" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="6 4" marker-end="url(#tip)"/>
+  <text x="392" y="438" font-size="10.5" fill="#8A99B3">isValid — free, catches bad sigs before gas</text>
+
+  <!-- ============ Step 6: settle on-chain ============ -->
+  <path d="M366 462 C440 459, 520 461, 594 462" fill="none" stroke="#0F9D58" stroke-width="2.2" stroke-linecap="round" marker-end="url(#tipGreen)"/>
+  <text x="392" y="454" font-size="12" fill="#0F9D58">6. POST /settle</text>
+
+  <path d="M610 462 C680 459, 750 461, 812 462" fill="none" stroke="#0F9D58" stroke-width="2.2" stroke-linecap="round" marker-end="url(#tipGreen)"/>
+  <text x="640" y="454" font-size="11.5" fill="#0F9D58">permitWitnessTransferFrom</text>
+  <text x="640" y="480" font-size="10.5" fill="#8A99B3">gas sponsored by facilitator</text>
+
+  <!-- ============ Step 7: deliver ============ -->
+  <g>
+    <path d="M400 508 C520 505, 700 506, 862 508 C866 522, 865 532, 862 544 C700 547, 520 546, 400 544 C397 530, 398 520, 400 508 Z"
+          fill="#E6F6EE" stroke="#CFDCF0" stroke-width="1.4" transform="translate(2,2)"/>
+    <path d="M400 508 C520 505, 700 506, 862 508 C866 522, 865 532, 862 544 C700 547, 520 546, 400 544 C397 530, 398 520, 400 508 Z"
+          fill="#E6F6EE" stroke="#0F9D58" stroke-width="1.9" stroke-linejoin="round"/>
+    <text x="414" y="530" font-size="12.5" fill="#0A1628">7. settled → agent releases data + tx hash on BscScan</text>
+  </g>
+
+  <path d="M356 526 C300 523, 200 524, 114 526" fill="none" stroke="#0F9D58" stroke-width="2.2" stroke-linecap="round" marker-end="url(#tipGreen)"/>
+  <text x="132" y="546" font-size="11" fill="#0F9D58">200 + PAYMENT-RESPONSE</text>
+
+  <!-- Callout: the claim the whole diagram supports. -->
+  <g>
+    <path d="M636 96 C716 93, 806 94, 878 96 C882 122, 881 152, 878 176 C806 179, 716 178, 636 176 C633 152, 634 122, 636 96 Z"
+          fill="#FFFFFF" stroke="#E3EAF5" stroke-width="1.4" transform="translate(2,2)"/>
+    <path d="M636 96 C716 93, 806 94, 878 96 C882 122, 881 152, 878 176 C806 179, 716 178, 636 176 C633 152, 634 122, 636 96 Z"
+          fill="#FFFFFF" stroke="#0B63F6" stroke-width="1.9" stroke-linejoin="round"/>
+    <text x="654" y="120" font-size="12.5" fill="#0B63F6">$0.115 per run</text>
+    <text x="654" y="140" font-size="11" fill="#5B6B85">5 settlements · 9.1s</text>
+    <text x="654" y="160" font-size="11" fill="#5B6B85">0 human approvals</text>
+  </g>
+</svg>
