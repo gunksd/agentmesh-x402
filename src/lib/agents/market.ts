@@ -1,32 +1,85 @@
 /**
  * Market data sources.
  *
- * Reads hit Binance's public market endpoints directly — the same surface Agent
- * OS exposes as the "public, no auth" scope of its MCP server.
+ * The public REST path, used when MCP is not authorised. Same numbers, same
+ * exchange — market data is the one Agent OS scope documented as "public, no
+ * auth", so this is a different door to identical data rather than a substitute.
  *
- * These do not go through the MCP server. That connection authenticates by
- * browser-based OAuth consent against a Binance desktop session, with no API-key
- * path, so a headless server process cannot establish it unattended. Market data
- * needs no authentication anyway; MCP would matter for the account, trade and
- * transfer scopes, which this project does not touch.
+ * Hosts are tried in order because `api.binance.com` answers 451 from some
+ * regions, including the US datacentres Vercel deploys to by default. That
+ * failure is invisible from outside a paid endpoint: the paywall settles payment
+ * before calling upstream, so a geo-block surfaces as a post-payment error with
+ * no cause attached. `data-api.binance.vision` is Binance's public market-data
+ * mirror and answers where the primary host refuses.
  */
 
-const PUBLIC_API = "https://api.binance.com/api/v3";
+/**
+ * Ordered by preference. A host that geo-blocks is remembered for the life of the
+ * process so later calls skip straight to one that works.
+ */
+const API_HOSTS = [
+  "https://data-api.binance.vision/api/v3",
+  "https://api.binance.com/api/v3",
+  "https://api-gcp.binance.com/api/v3",
+] as const;
 
 /** Upstream calls are cheap but must not hang an agent request. */
 const FETCH_TIMEOUT_MS = 8000;
 
-async function getJson<T>(url: string): Promise<T> {
-  const response = await fetch(url, {
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    headers: { accept: "application/json" },
-    cache: "no-store",
-  });
+/** Hosts that returned a geo-block or refused outright. */
+const blockedHosts = new Set<string>();
 
-  if (!response.ok) {
-    throw new Error(`Market request failed: ${response.status} ${url}`);
+/** Status codes that mean "this host will never serve us", not "try again". */
+function isHostLevelRejection(status: number): boolean {
+  return status === 451 || status === 403;
+}
+
+/**
+ * Fetches a path across the candidate hosts, returning the first success.
+ *
+ * @param path Path below /api/v3, starting with a slash.
+ */
+async function getJson<T>(path: string): Promise<T> {
+  const candidates = API_HOSTS.filter((host) => !blockedHosts.has(host));
+
+  // Every host is blocked — retry them all rather than fail without trying.
+  const hosts = candidates.length > 0 ? candidates : API_HOSTS;
+
+  let lastError: Error | null = null;
+
+  for (const host of hosts) {
+    const url = `${host}${path}`;
+
+    try {
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+        headers: { accept: "application/json" },
+        cache: "no-store",
+      });
+
+      if (response.ok) return (await response.json()) as T;
+
+      if (isHostLevelRejection(response.status)) {
+        blockedHosts.add(host);
+        lastError = new Error(
+          `${host} returned ${response.status} (region-restricted)`,
+        );
+        continue;
+      }
+
+      // A 4xx on one host will repeat on the others — a bad symbol stays bad.
+      throw new Error(`Market request failed: ${response.status} ${url}`);
+    } catch (error) {
+      if (error instanceof Error && error.message.startsWith("Market request")) {
+        throw error;
+      }
+      lastError = error instanceof Error ? error : new Error(String(error));
+    }
   }
-  return (await response.json()) as T;
+
+  throw new Error(
+    `All market data hosts unreachable: ${lastError?.message ?? "unknown"}`,
+  );
 }
 
 export interface Ticker24h {
@@ -42,7 +95,7 @@ export interface Ticker24h {
 
 export function fetchTicker(symbol: string): Promise<Ticker24h> {
   return getJson<Ticker24h>(
-    `${PUBLIC_API}/ticker/24hr?symbol=${encodeURIComponent(symbol)}`,
+    `/ticker/24hr?symbol=${encodeURIComponent(symbol)}`,
   );
 }
 
@@ -55,7 +108,7 @@ export interface OrderBook {
 
 export function fetchOrderBook(symbol: string, limit = 100): Promise<OrderBook> {
   return getJson<OrderBook>(
-    `${PUBLIC_API}/depth?symbol=${encodeURIComponent(symbol)}&limit=${limit}`,
+    `/depth?symbol=${encodeURIComponent(symbol)}&limit=${limit}`,
   );
 }
 
@@ -75,7 +128,7 @@ export async function fetchKlines(
   limit = 48,
 ): Promise<Kline[]> {
   const raw = await getJson<unknown[][]>(
-    `${PUBLIC_API}/klines?symbol=${encodeURIComponent(symbol)}&interval=${interval}&limit=${limit}`,
+    `/klines?symbol=${encodeURIComponent(symbol)}&interval=${interval}&limit=${limit}`,
   );
 
   return raw.map((candle) => ({
