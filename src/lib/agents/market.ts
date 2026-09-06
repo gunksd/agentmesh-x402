@@ -1,10 +1,14 @@
 /**
  * Market data sources.
  *
- * Reads go through Binance's public market endpoints, which Agent OS documents
- * as the "public, no auth" scope of its MCP server. When AGENT_OS_MCP_URL is
- * configured the same reads route through the MCP server instead, so an
- * operator's Agentic sub-account permissions govern access.
+ * Reads hit Binance's public market endpoints directly — the same surface Agent
+ * OS exposes as the "public, no auth" scope of its MCP server.
+ *
+ * These do not go through the MCP server. That connection authenticates by
+ * browser-based OAuth consent against a Binance desktop session, with no API-key
+ * path, so a headless server process cannot establish it unattended. Market data
+ * needs no authentication anyway; MCP would matter for the account, trade and
+ * transfer scopes, which this project does not touch.
  */
 
 const PUBLIC_API = "https://api.binance.com/api/v3";

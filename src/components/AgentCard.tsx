@@ -51,7 +51,9 @@ export function AgentCard({ state }: { state: AgentState }) {
             <h3 className="truncate text-[13px] font-semibold tracking-tight">
               {agent.name}
             </h3>
-            {agent.usesMcp ? <Badge tone="brand">MCP</Badge> : null}
+            {agent.readsLiveMarket ? (
+              <Badge tone="brand">Live data</Badge>
+            ) : null}
           </div>
           <AgentStatusPill status={state.status} />
         </div>

@@ -8,10 +8,28 @@
  * better than letting a reviewer discover it in the source.
  */
 
-import { Badge } from "./ui/Badge";
+import { Badge, type BadgeTone } from "./ui/Badge";
 import { Card, CardBody, CardHeader } from "./ui/Card";
 
-const SURFACES = [
+type SurfaceStatus = "live" | "ready" | "not-used";
+
+/**
+ * Three states, kept distinct on purpose. Collapsing "ready" and "not-used" into
+ * one label would let a reviewer read an unwired surface as merely unconfigured.
+ */
+const STATUS_LABELS: Record<SurfaceStatus, string> = {
+  live: "Live",
+  ready: "Ready",
+  "not-used": "Not used",
+};
+
+const STATUS_TONES: Record<SurfaceStatus, BadgeTone> = {
+  live: "success",
+  ready: "neutral",
+  "not-used": "warning",
+};
+
+const SURFACES: { name: string; status: SurfaceStatus; detail: string }[] = [
   {
     name: "B402 Bazaar",
     status: "live" as const,
@@ -32,9 +50,9 @@ const SURFACES = [
   },
   {
     name: "Agent OS MCP server",
-    status: "ready" as const,
+    status: "not-used" as const,
     detail:
-      "OAuth-scoped connection at agent.binance.com/mcp/agentic. Set AGENT_OS_MCP_URL to route account and trade reads through it.",
+      "Not wired in. The connection at agent.binance.com/mcp/agentic authenticates by browser OAuth consent against a desktop Binance session, with no API-key path, so a headless server cannot establish it unattended. Market data needs no auth anyway — MCP matters for account, trade and transfer scopes, which this project does not touch.",
   },
   {
     name: "B402 facilitator",
@@ -59,8 +77,8 @@ export function StackNote() {
               className="flex flex-col gap-1 border-b border-[var(--border)] pb-2.5 last:border-0 last:pb-0 sm:flex-row sm:items-start sm:gap-4"
             >
               <div className="flex items-center gap-2 sm:w-56 sm:shrink-0">
-                <Badge tone={surface.status === "live" ? "success" : "neutral"}>
-                  {surface.status === "live" ? "Live" : "Ready"}
+                <Badge tone={STATUS_TONES[surface.status]}>
+                  {STATUS_LABELS[surface.status]}
                 </Badge>
                 <span className="text-[12px] font-semibold tracking-tight">
                   {surface.name}

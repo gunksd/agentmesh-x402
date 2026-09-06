@@ -25,8 +25,8 @@ export interface AgentDefinition {
   description: string;
   /** Price per call in USD. */
   priceUsd: number;
-  /** Whether this agent reaches Binance Agent OS MCP for live data. */
-  usesMcp: boolean;
+  /** Whether this agent fetches live Binance market data to do its work. */
+  readsLiveMarket: boolean;
   /** Shown in the node graph. */
   accent: "market" | "depth" | "sentiment" | "risk" | "report";
   /** Inputs the agent accepts, surfaced in the Bazaar listing schema. */
@@ -40,7 +40,7 @@ export const AGENTS: Record<AgentSkill, AgentDefinition> = {
     description:
       "Live spot price, 24h range and funding for any Binance trading pair.",
     priceUsd: 0.01,
-    usesMcp: true,
+    readsLiveMarket: true,
     accent: "market",
     inputs: { symbol: "Trading pair, e.g. BTCUSDT" },
   },
@@ -50,17 +50,19 @@ export const AGENTS: Record<AgentSkill, AgentDefinition> = {
     description:
       "Bid/ask imbalance, liquidity walls and slippage estimates from live depth.",
     priceUsd: 0.02,
-    usesMcp: true,
+    readsLiveMarket: true,
     accent: "depth",
     inputs: { symbol: "Trading pair", depth: "Levels to analyse" },
   },
   sentiment: {
     skill: "sentiment",
-    name: "Sentiment Agent",
+    // Named for the role it plays in the mesh. The signal is momentum-derived
+    // from price and volume, not scraped from news or social feeds.
+    name: "Momentum Agent",
     description:
-      "Aggregated news and social sentiment scored against recent price action.",
+      "Composite momentum score from 24h return, range position and volume trend.",
     priceUsd: 0.015,
-    usesMcp: false,
+    readsLiveMarket: true,
     accent: "sentiment",
     inputs: { symbol: "Asset ticker", window: "Lookback window" },
   },
@@ -70,7 +72,7 @@ export const AGENTS: Record<AgentSkill, AgentDefinition> = {
     description:
       "Position sizing, liquidation distance and volatility-adjusted exposure.",
     priceUsd: 0.02,
-    usesMcp: true,
+    readsLiveMarket: true,
     accent: "risk",
     inputs: { symbol: "Trading pair", notional: "Position size in USD" },
   },
@@ -80,7 +82,7 @@ export const AGENTS: Record<AgentSkill, AgentDefinition> = {
     description:
       "Synthesises upstream agent output into a single directional briefing.",
     priceUsd: 0.05,
-    usesMcp: false,
+    readsLiveMarket: false,
     accent: "report",
     inputs: { findings: "Structured output from upstream agents" },
   },
