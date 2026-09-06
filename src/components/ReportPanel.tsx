@@ -12,6 +12,7 @@ import type { Direction, ReportResult } from "@/lib/agents/analysis";
 import { Badge, type BadgeTone } from "./ui/Badge";
 import { cn, formatPrice } from "@/lib/utils";
 import { useLanguage } from "./LanguageProvider";
+import { pick } from "@/lib/i18n/content";
 import type { MessageKey } from "@/lib/i18n/dictionary";
 
 const DIRECTION_META: Record<
@@ -30,7 +31,7 @@ export function ReportPanel({
   report: ReportResult;
   className?: string;
 }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { key, tone, Icon } = DIRECTION_META[report.direction];
   const confidencePercent = Math.round(report.confidence * 100);
 
@@ -38,7 +39,7 @@ export function ReportPanel({
     <div className={cn("px-5 py-4", className)}>
       <div className="flex items-start justify-between gap-4">
         <h3 className="text-[15px] font-semibold leading-snug tracking-tight">
-          {report.headline}
+          {pick(report.headline, lang)}
         </h3>
         <Badge tone={tone} className="mt-0.5 gap-1">
           <Icon aria-hidden className="size-3" />
@@ -66,7 +67,7 @@ export function ReportPanel({
             key={index}
             className="text-[12px] leading-relaxed text-[var(--muted)]"
           >
-            {paragraph}
+            {pick(paragraph, lang)}
           </p>
         ))}
       </div>
@@ -74,9 +75,9 @@ export function ReportPanel({
       {report.levels.length > 0 ? (
         <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-[var(--border)] pt-3.5 sm:grid-cols-3">
           {report.levels.map((level) => (
-            <div key={`${level.label}-${level.value}`} className="min-w-0">
+            <div key={`${level.label.en}-${level.value}`} className="min-w-0">
               <dt className="truncate text-[10px] uppercase tracking-wide text-[var(--subtle)]">
-                {level.label}
+                {pick(level.label, lang)}
               </dt>
               <dd className="numeric mt-0.5 text-[12px] font-semibold">
                 {formatPrice(level.value)}

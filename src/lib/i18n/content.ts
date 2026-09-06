@@ -8,17 +8,11 @@
  * this only supplies display text.
  */
 
-import type { Lang } from "./types";
 import type { AgentSkill } from "@/lib/agents/registry";
+import type { LocalisedText } from "./types";
 
-export interface LocalisedText {
-  en: string;
-  zh: string;
-}
-
-export function pick(text: LocalisedText, lang: Lang): string {
-  return text[lang];
-}
+// Re-exported so UI components keep importing both from one place.
+export { pick, type LocalisedText } from "./types";
 
 /**
  * Agent names and descriptions.

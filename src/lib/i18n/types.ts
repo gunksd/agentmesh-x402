@@ -11,6 +11,21 @@ export type Lang = "en" | "zh";
 
 export const LANGS: Lang[] = ["en", "zh"];
 
+/**
+ * A string carried in both languages.
+ *
+ * Lives here rather than in content.ts because server-side analysis produces
+ * these too, and the analysis layer must not depend on UI content records.
+ */
+export interface LocalisedText {
+  en: string;
+  zh: string;
+}
+
+export function pick(text: LocalisedText, lang: Lang): string {
+  return text[lang];
+}
+
 export const DEFAULT_LANG: Lang = "en";
 
 /** Label shown on the toggle for each language, in that language. */

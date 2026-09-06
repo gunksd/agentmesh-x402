@@ -54,16 +54,51 @@ export function hashWitness(to: string, validAfter: string): `0x${string}` {
  * Returns `success: false` with no `errorReason` while a transaction is
  * in-flight, matching B402's pending semantics — callers poll until it resolves.
  */
+/** How many times to re-reserve a nonce after a collision. */
+const MAX_NONCE_ATTEMPTS = 5;
+
+/**
+ * Settles a payment, retrying when the relayer's account nonce collides.
+ *
+ * Retrying is what makes concurrency work across serverless instances. The
+ * in-process allocator cannot see reservations made by a sibling instance, so a
+ * clash is expected rather than exceptional: on collision we drop the cache,
+ * re-read the chain, and try again with a short jittered backoff.
+ *
+ * Only nonce clashes retry. A reverted transfer or an expired authorisation
+ * would fail identically every time, and retrying those would just burn gas.
+ */
 export async function settlePayment(
+  payload: PaymentPayload,
+  requirements: PaymentRequirements,
+): Promise<SettleResponse> {
+  let last: SettleResponse | null = null;
+
+  for (let attempt = 1; attempt <= MAX_NONCE_ATTEMPTS; attempt += 1) {
+    last = await attemptSettle(payload, requirements);
+
+    if (last.success || last.errorReason !== "relayer_nonce_collision") {
+      return last;
+    }
+
+    // Jitter so parallel instances that collided do not retry in lockstep.
+    const backoff = 120 * attempt + Math.floor(Math.random() * 180);
+    await new Promise((resolve) => setTimeout(resolve, backoff));
+  }
+
+  return last as SettleResponse;
+}
+
+async function attemptSettle(
   payload: PaymentPayload,
   requirements: PaymentRequirements,
 ): Promise<SettleResponse> {
   const auth = payload.payload.permit2Authorization;
   const wallet = relayerClient();
 
-  // Reserve a distinct nonce so concurrent settlements do not collide. Without
-  // this, parallel payments all read the same pending nonce and the RPC keeps
-  // only one of them.
+  // Reserve a distinct nonce so concurrent settlements do not collide. Within
+  // one process this is authoritative; across instances the retry above covers
+  // what this cannot see.
   const relayer = wallet.account.address;
   const nonce = await allocateNonce(relayer);
 
@@ -119,11 +154,22 @@ export async function settlePayment(
     // would sit unmineable. Drop the cache and re-read the chain next time.
     releaseNonce(relayer);
 
+    const reason = settleErrorReason(error);
+
+    // Log the raw error whenever it did not match a known pattern. Returning a
+    // bare "settlement_failed" hides exactly the cases worth diagnosing.
+    if (reason === "settlement_failed") {
+      console.error(
+        "[settle] unrecognised failure:",
+        error instanceof Error ? error.message : error,
+      );
+    }
+
     return {
       success: false,
       network: payload.network,
       payer: auth.from,
-      errorReason: settleErrorReason(error),
+      errorReason: reason,
     };
   }
 }
@@ -153,5 +199,26 @@ function settleErrorReason(error: unknown): string {
   if (/insufficient funds/i.test(message)) {
     return "relayer_out_of_gas";
   }
+  if (isNonceCollision(message)) {
+    return "relayer_nonce_collision";
+  }
   return "settlement_failed";
+}
+
+/**
+ * Recognises an account-nonce clash on the relayer.
+ *
+ * This is the failure mode that only appears in production. The nonce allocator
+ * caches per process, but every agent endpoint runs as its own serverless
+ * instance, so four parallel payments each read the same pending nonce from a
+ * separate process and the RPC accepts exactly one. Locally a single dev server
+ * shares one cache, which is why it never reproduced there.
+ *
+ * BSC nodes phrase this several ways and none of them mention "nonce"
+ * consistently, so match the family rather than one string.
+ */
+function isNonceCollision(message: string): boolean {
+  return /nonce too low|nonce too high|already known|replacement transaction underpriced|invalid parameters|already imported|known transaction/i.test(
+    message,
+  );
 }

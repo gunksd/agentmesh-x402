@@ -14,8 +14,18 @@
  */
 
 import type { DepthResult, Direction, RiskResult } from "./analysis";
+import type { LocalisedText } from "@/lib/i18n/types";
 
 export type OrderSide = "BUY" | "SELL";
+
+/**
+ * Why no order was proposed.
+ *
+ * `no_edge` is a real conclusion; `missing_depth` is a gap in the inputs. The UI
+ * must not conflate them — reporting "no directional edge" when the depth agent
+ * simply failed to get paid contradicts a report that says "short bias at 58%".
+ */
+export type NoOrderReason = "no_edge" | "missing_depth";
 
 export interface OrderPreview {
   symbol: string;
@@ -29,8 +39,8 @@ export interface OrderPreview {
   leverage: number;
   stopLossPrice: number;
   takeProfitPrice: number;
-  /** Why this size and these levels, in one line each. */
-  rationale: string[];
+  /** Why this size and these levels, in one line each, in both languages. */
+  rationale: LocalisedText[];
   /** What would need to be granted for this to execute. */
   requiredScope: "trade";
   status: "awaiting_human_approval";
@@ -44,11 +54,20 @@ function toSignificant(value: number, digits = 5): number {
   return Math.round(value * factor) / factor;
 }
 
+/** Either an order, or the reason there isn't one. */
+export type OrderOutcome =
+  | { order: OrderPreview; reason?: undefined }
+  | { order: null; reason: NoOrderReason };
+
 /**
- * Builds a preview, or returns null when there is nothing worth proposing.
+ * Builds a preview, or explains why it could not.
  *
  * A neutral call produces no order: the honest output of "no edge" is no trade,
- * and manufacturing one would undercut the report it came from.
+ * and manufacturing one would undercut the report it came from. A missing order
+ * book is a different situation entirely — the limit price is derived from the
+ * spread, so without depth there is nothing to price against even when the
+ * direction is clear. The two are reported separately so the UI can say which
+ * happened.
  */
 export function previewOrder(
   symbol: string,
@@ -57,9 +76,12 @@ export function previewOrder(
   budgetUsd: number,
   depth?: DepthResult,
   risk?: RiskResult,
-): OrderPreview | null {
-  if (direction === "neutral") return null;
-  if (!depth || depth.bestBid <= 0 || depth.bestAsk <= 0) return null;
+): OrderOutcome {
+  if (direction === "neutral") return { order: null, reason: "no_edge" };
+
+  if (!depth || depth.bestBid <= 0 || depth.bestAsk <= 0) {
+    return { order: null, reason: "missing_depth" };
+  }
 
   const side: OrderSide = direction === "long" ? "BUY" : "SELL";
 
@@ -94,33 +116,67 @@ export function previewOrder(
       ? price * (1 + stopDistance * 2)
       : price * (1 - stopDistance * 2);
 
-  const rationale = [
-    `${side} sized at ${(confidence * 100).toFixed(0)}% conviction against a ` +
-      `$${budgetUsd.toLocaleString()} budget.`,
-    `Limit rests inside a ${depth.spreadBps.toFixed(1)}bps spread to avoid ` +
-      `paying ${depth.slippageBuyBps.toFixed(1)}bps of taker slippage.`,
+  const conviction = (confidence * 100).toFixed(0);
+  const budget = budgetUsd.toLocaleString();
+  const spread = depth.spreadBps.toFixed(1);
+  const slippage = depth.slippageBuyBps.toFixed(1);
+
+  const rationale: LocalisedText[] = [
+    {
+      en:
+        `${side} sized at ${conviction}% conviction against a ` +
+        `$${budget} budget.`,
+      zh:
+        `${side === "BUY" ? "买入" : "卖出"}，按 ${conviction}% 把握度对 ` +
+        `${budget} 美元预算定量。`,
+    },
+    {
+      en:
+        `Limit rests inside a ${spread}bps spread to avoid paying ` +
+        `${slippage}bps of taker slippage.`,
+      zh:
+        `限价挂在 ${spread}bps 价差内侧，避免付出 ${slippage}bps 的主动成交滑点。`,
+    },
   ];
 
   if (risk) {
-    rationale.push(
-      `Stop at ${(stopDistance * 100).toFixed(2)}% reflects ` +
-        `${(risk.annualisedVolatility * 100).toFixed(0)}% annualised volatility ` +
-        `(${risk.verdict} risk); leverage capped at ${leverage.toFixed(1)}x.`,
-    );
+    const stopPercent = (stopDistance * 100).toFixed(2);
+    const vol = (risk.annualisedVolatility * 100).toFixed(0);
+    const lev = leverage.toFixed(1);
+
+    const verdict: LocalisedText =
+      risk.verdict === "low"
+        ? { en: "low", zh: "低" }
+        : risk.verdict === "moderate"
+          ? { en: "moderate", zh: "中等" }
+          : risk.verdict === "elevated"
+            ? { en: "elevated", zh: "偏高" }
+            : { en: "high", zh: "高" };
+
+    rationale.push({
+      en:
+        `Stop at ${stopPercent}% reflects ${vol}% annualised volatility ` +
+        `(${verdict.en} risk); leverage capped at ${lev}x.`,
+      zh:
+        `${stopPercent}% 的止损距离对应 ${vol}% 的年化波动率` +
+        `（${verdict.zh}风险）；杠杆上限 ${lev} 倍。`,
+    });
   }
 
   return {
-    symbol,
-    side,
-    type: "LIMIT",
-    quantity,
-    price: toSignificant(price, 8),
-    notionalUsd: Math.round(notionalUsd),
-    leverage,
-    stopLossPrice: toSignificant(stopLossPrice, 8),
-    takeProfitPrice: toSignificant(takeProfitPrice, 8),
-    rationale,
-    requiredScope: "trade",
-    status: "awaiting_human_approval",
+    order: {
+      symbol,
+      side,
+      type: "LIMIT",
+      quantity,
+      price: toSignificant(price, 8),
+      notionalUsd: Math.round(notionalUsd),
+      leverage,
+      stopLossPrice: toSignificant(stopLossPrice, 8),
+      takeProfitPrice: toSignificant(takeProfitPrice, 8),
+      rationale,
+      requiredScope: "trade",
+      status: "awaiting_human_approval",
+    },
   };
 }

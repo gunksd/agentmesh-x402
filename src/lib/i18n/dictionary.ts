@@ -132,6 +132,9 @@ const en = {
   panelOrderNoneTitle: "No order proposed.",
   panelOrderNone:
     "The report found no directional edge, so the mesh proposes no trade. Manufacturing one would contradict the analysis it was just paid for.",
+  panelOrderNoDepthTitle: "Order could not be priced.",
+  panelOrderNoDepth:
+    "The report has a direction, but the limit price is derived from the live spread and the Orderbook Depth agent's payment did not settle this run. Rather than guess a price, the mesh proposes nothing — retry the run to price it.",
   orderAwaiting: "Awaiting your approval",
   orderQuantity: "Quantity",
   orderLimit: "Limit price",
@@ -270,6 +273,9 @@ const zh: Record<keyof typeof en, string> = {
   panelOrderNoneTitle: "未提出订单。",
   panelOrderNone:
     "报告未发现方向性边际，因此不提出任何交易。硬凑一笔会与刚刚付费得到的分析自相矛盾。",
+  panelOrderNoDepthTitle: "无法为订单定价。",
+  panelOrderNoDepth:
+    "报告已给出方向，但限价需要依据实时价差推算，而本次运行中盘口深度 Agent 的支付未能结算。与其凭空猜一个价格，网络选择不提出订单——重跑一次即可定价。",
   orderAwaiting: "等待你确认",
   orderQuantity: "数量",
   orderLimit: "限价",

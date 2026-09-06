@@ -35,7 +35,7 @@ export const POST = withPayment("report", async (request, context) => {
 
   // The order preview is the deliverable's payoff: concrete parameters a human
   // can approve. Producing them needs no trade scope, and this project holds none.
-  const orderPreview = previewOrder(
+  const outcome = previewOrder(
     symbol,
     data.direction,
     data.confidence,
@@ -48,6 +48,12 @@ export const POST = withPayment("report", async (request, context) => {
     agent: "report",
     paidBy: context.payer,
     transaction: context.transaction,
-    data: { ...data, orderPreview },
+    data: {
+      ...data,
+      orderPreview: outcome.order,
+      // Carried so the UI can distinguish "no edge" from "depth agent never got
+      // paid" instead of blaming the analysis for a missing input.
+      noOrderReason: outcome.reason ?? null,
+    },
   });
 });

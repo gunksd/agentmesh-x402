@@ -8,7 +8,8 @@
  */
 
 import { realisedVolatility, type OrderBook } from "./market";
-import type { OrderPreview } from "./order";
+import type { NoOrderReason, OrderPreview } from "./order";
+import type { LocalisedText } from "@/lib/i18n/types";
 import {
   fetchKlines,
   fetchOrderBook,
@@ -305,15 +306,22 @@ export interface ReportResult {
   direction: Direction;
   /** Model confidence in [0, 1]. */
   confidence: number;
-  headline: string;
-  narrative: string[];
-  levels: { label: string; value: number }[];
+  /**
+   * Prose is emitted in both languages rather than translated in the browser.
+   * The report is generated server-side from numbers the client never sees, so
+   * producing one language would mean either shipping the raw findings to the
+   * client or losing the other language entirely.
+   */
+  headline: LocalisedText;
+  narrative: LocalisedText[];
+  levels: { label: LocalisedText; value: number }[];
   /**
    * Order parameters awaiting human approval. Attached by the report route
    * rather than composeReport, which stays a pure function over findings.
-   * Null when the call is neutral — no edge means no trade to propose.
    */
   orderPreview?: OrderPreview | null;
+  /** Why no order was proposed, when `orderPreview` is null. */
+  noOrderReason?: NoOrderReason | null;
 }
 
 export interface ReportInput {
@@ -364,61 +372,116 @@ export function composeReport(
     Math.min(0.95, Math.abs(composite) * 1.6 - volatilityPenalty + 0.25),
   );
 
-  const narrative: string[] = [];
+  const narrative: LocalisedText[] = [];
 
   if (input.market) {
-    narrative.push(
-      `${symbol} trades at ${input.market.price.toLocaleString()}, ` +
-        `${input.market.changePercent24h >= 0 ? "up" : "down"} ` +
-        `${Math.abs(input.market.changePercent24h).toFixed(2)}% over 24h and sitting at ` +
-        `${(input.market.rangePosition * 100).toFixed(0)}% of the daily range.`,
-    );
-  }
-  if (input.depth) {
-    const side = input.depth.imbalance >= 0 ? "bids" : "asks";
-    narrative.push(
-      `Depth is skewed toward ${side} at ${(input.depth.bidShare * 100).toFixed(1)}% ` +
-        `bid share, with a ${input.depth.spreadBps.toFixed(1)}bps spread. ` +
-        `A $100k market buy would slip roughly ${input.depth.slippageBuyBps.toFixed(1)}bps.`,
-    );
-  }
-  if (input.sentiment) {
-    narrative.push(
-      `Momentum reads ${input.sentiment.label} at a composite score of ` +
-        `${input.sentiment.score.toFixed(2)}.`,
-    );
-  }
-  if (input.risk) {
-    narrative.push(
-      `Realised volatility is ${(input.risk.annualisedVolatility * 100).toFixed(1)}% annualised ` +
-        `(${input.risk.verdict} risk). One-day 95% VaR on a ` +
-        `$${input.risk.notionalUsd.toLocaleString()} position is ` +
-        `$${input.risk.valueAtRisk95.toFixed(0)}; cap leverage near ` +
-        `${input.risk.suggestedMaxLeverage.toFixed(1)}x.`,
-    );
+    const price = input.market.price.toLocaleString();
+    const change = Math.abs(input.market.changePercent24h).toFixed(2);
+    const rising = input.market.changePercent24h >= 0;
+    const position = (input.market.rangePosition * 100).toFixed(0);
+
+    narrative.push({
+      en:
+        `${symbol} trades at ${price}, ${rising ? "up" : "down"} ${change}% ` +
+        `over 24h and sitting at ${position}% of the daily range.`,
+      zh:
+        `${symbol} 现价 ${price}，24 小时${rising ? "上涨" : "下跌"} ${change}%，` +
+        `处于日内区间的 ${position}% 位置。`,
+    });
   }
 
-  const levels: { label: string; value: number }[] = [];
+  if (input.depth) {
+    const bidShare = (input.depth.bidShare * 100).toFixed(1);
+    const spread = input.depth.spreadBps.toFixed(1);
+    const slip = input.depth.slippageBuyBps.toFixed(1);
+    const bidHeavy = input.depth.imbalance >= 0;
+
+    narrative.push({
+      en:
+        `Depth is skewed toward ${bidHeavy ? "bids" : "asks"} at ${bidShare}% ` +
+        `bid share, with a ${spread}bps spread. A $100k market buy would slip ` +
+        `roughly ${slip}bps.`,
+      zh:
+        `盘口偏向${bidHeavy ? "买盘" : "卖盘"}，买盘占比 ${bidShare}%，` +
+        `价差 ${spread}bps。10 万美元市价买入约滑点 ${slip}bps。`,
+    });
+  }
+
+  if (input.sentiment) {
+    const score = input.sentiment.score.toFixed(2);
+    const label: LocalisedText =
+      input.sentiment.label === "bullish"
+        ? { en: "bullish", zh: "偏多" }
+        : input.sentiment.label === "bearish"
+          ? { en: "bearish", zh: "偏空" }
+          : { en: "neutral", zh: "中性" };
+
+    narrative.push({
+      en: `Momentum reads ${label.en} at a composite score of ${score}.`,
+      zh: `动量读数${label.zh}，综合评分 ${score}。`,
+    });
+  }
+
+  if (input.risk) {
+    const vol = (input.risk.annualisedVolatility * 100).toFixed(1);
+    const notional = input.risk.notionalUsd.toLocaleString();
+    const varUsd = input.risk.valueAtRisk95.toFixed(0);
+    const leverage = input.risk.suggestedMaxLeverage.toFixed(1);
+
+    const verdict: LocalisedText =
+      input.risk.verdict === "low"
+        ? { en: "low", zh: "低" }
+        : input.risk.verdict === "moderate"
+          ? { en: "moderate", zh: "中等" }
+          : input.risk.verdict === "elevated"
+            ? { en: "elevated", zh: "偏高" }
+            : { en: "high", zh: "高" };
+
+    narrative.push({
+      en:
+        `Realised volatility is ${vol}% annualised (${verdict.en} risk). ` +
+        `One-day 95% VaR on a $${notional} position is $${varUsd}; ` +
+        `cap leverage near ${leverage}x.`,
+      zh:
+        `已实现波动率年化 ${vol}%（${verdict.zh}风险）。` +
+        `${notional} 美元仓位的单日 95% VaR 为 ${varUsd} 美元；` +
+        `杠杆建议不超过 ${leverage} 倍。`,
+    });
+  }
+
+  const levels: { label: LocalisedText; value: number }[] = [];
   if (input.market) {
     levels.push(
-      { label: "24h high", value: input.market.high24h },
-      { label: "Spot", value: input.market.price },
-      { label: "24h low", value: input.market.low24h },
+      { label: { en: "24h high", zh: "24 小时高点" }, value: input.market.high24h },
+      { label: { en: "Spot", zh: "现价" }, value: input.market.price },
+      { label: { en: "24h low", zh: "24 小时低点" }, value: input.market.low24h },
     );
   }
   if (input.depth) {
     for (const wall of input.depth.walls.slice(0, 2)) {
+      const ratio = wall.ratio.toFixed(1);
+      const isBid = wall.side === "bid";
       levels.push({
-        label: `${wall.side === "bid" ? "Bid" : "Ask"} wall (${wall.ratio.toFixed(1)}x)`,
+        label: {
+          en: `${isBid ? "Bid" : "Ask"} wall (${ratio}x)`,
+          zh: `${isBid ? "买盘" : "卖盘"}墙（${ratio}x）`,
+        },
         value: wall.price,
       });
     }
   }
 
-  const headline =
+  const confidencePercent = (confidence * 100).toFixed(0);
+  const headline: LocalisedText =
     direction === "neutral"
-      ? `${symbol}: no directional edge, stand aside`
-      : `${symbol}: ${direction} bias at ${(confidence * 100).toFixed(0)}% confidence`;
+      ? {
+          en: `${symbol}: no directional edge, stand aside`,
+          zh: `${symbol}：无方向性边际，建议观望`,
+        }
+      : {
+          en: `${symbol}: ${direction} bias at ${confidencePercent}% confidence`,
+          zh: `${symbol}：${direction === "long" ? "偏多" : "偏空"}，置信度 ${confidencePercent}%`,
+        };
 
   return { symbol, direction, confidence, headline, narrative, levels };
 }

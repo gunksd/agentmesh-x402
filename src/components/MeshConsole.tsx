@@ -205,11 +205,17 @@ export function MeshConsole() {
             <Card>
               <CardHeader
                 title={t("panelOrder")}
-                description={t("panelOrderNoneTitle")}
+                description={
+                  report.noOrderReason === "missing_depth"
+                    ? t("panelOrderNoDepthTitle")
+                    : t("panelOrderNoneTitle")
+                }
               />
               <CardBody>
                 <p className="text-[12px] leading-relaxed text-[var(--muted)]">
-                  {t("panelOrderNone")}
+                  {report.noOrderReason === "missing_depth"
+                    ? t("panelOrderNoDepth")
+                    : t("panelOrderNone")}
                 </p>
               </CardBody>
             </Card>

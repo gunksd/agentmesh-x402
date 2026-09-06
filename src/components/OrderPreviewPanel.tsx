@@ -12,6 +12,7 @@ import { ShieldCheck } from "lucide-react";
 import type { OrderPreview } from "@/lib/agents/order";
 import { Badge } from "./ui/Badge";
 import { useLanguage } from "./LanguageProvider";
+import { pick } from "@/lib/i18n/content";
 import { cn, formatPrice, formatUsd } from "@/lib/utils";
 
 function Field({
@@ -42,7 +43,7 @@ function Field({
 }
 
 export function OrderPreviewPanel({ order }: { order: OrderPreview }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const isBuy = order.side === "BUY";
 
   return (
@@ -84,7 +85,7 @@ export function OrderPreviewPanel({ order }: { order: OrderPreview }) {
               key={index}
               className="text-[12px] leading-relaxed text-[var(--muted)]"
             >
-              {line}
+              {pick(line, lang)}
             </li>
           ))}
         </ul>
