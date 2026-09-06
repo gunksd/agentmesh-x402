@@ -8,6 +8,7 @@
 
 import { NextResponse } from "next/server";
 import { composeReport, type ReportInput } from "@/lib/agents/analysis";
+import { previewOrder } from "@/lib/agents/order";
 import { withPayment } from "@/lib/x402/paywall";
 
 export const runtime = "nodejs";
@@ -16,6 +17,8 @@ export const dynamic = "force-dynamic";
 interface ReportRequestBody {
   symbol?: string;
   findings?: ReportInput;
+  /** Budget the order preview is sized against. */
+  budgetUsd?: number;
 }
 
 export const POST = withPayment("report", async (request, context) => {
@@ -27,12 +30,24 @@ export const POST = withPayment("report", async (request, context) => {
   }
 
   const symbol = body.symbol?.toUpperCase() ?? "BTCUSDT";
-  const data = composeReport(symbol, body.findings ?? {});
+  const findings = body.findings ?? {};
+  const data = composeReport(symbol, findings);
+
+  // The order preview is the deliverable's payoff: concrete parameters a human
+  // can approve. Producing them needs no trade scope, and this project holds none.
+  const orderPreview = previewOrder(
+    symbol,
+    data.direction,
+    data.confidence,
+    body.budgetUsd ?? findings.risk?.notionalUsd ?? 10_000,
+    findings.depth,
+    findings.risk,
+  );
 
   return NextResponse.json({
     agent: "report",
     paidBy: context.payer,
     transaction: context.transaction,
-    data,
+    data: { ...data, orderPreview },
   });
 });

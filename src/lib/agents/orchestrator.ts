@@ -184,6 +184,7 @@ export async function runPipeline(
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         symbol,
+        budgetUsd: notionalUsd,
         findings: {
           market: market?.data,
           depth: depth?.data,

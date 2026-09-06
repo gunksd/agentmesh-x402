@@ -7,15 +7,23 @@
  * is the thing this project is actually demonstrating.
  */
 
+import { realisedVolatility, type OrderBook } from "./market";
+import type { OrderPreview } from "./order";
 import {
   fetchKlines,
   fetchOrderBook,
   fetchTicker,
-  realisedVolatility,
-  type OrderBook,
-} from "./market";
+  type DataSource,
+} from "@/lib/mcp/market";
 
 export type Direction = "long" | "short" | "neutral";
+
+/** Where an agent's inputs came from, reported so the UI need not assume. */
+export interface Provenance {
+  source: DataSource;
+  /** MCP tool name, when served over MCP. */
+  tool?: string;
+}
 
 export interface MarketDataResult {
   symbol: string;
@@ -26,12 +34,13 @@ export interface MarketDataResult {
   quoteVolume24h: number;
   /** Where price sits inside the 24h range, 0 at the low and 1 at the high. */
   rangePosition: number;
+  provenance: Provenance;
 }
 
 export async function analyseMarketData(
   symbol: string,
 ): Promise<MarketDataResult> {
-  const ticker = await fetchTicker(symbol);
+  const { data: ticker, source, tool } = await fetchTicker(symbol);
 
   const price = Number(ticker.lastPrice);
   const high = Number(ticker.highPrice);
@@ -46,6 +55,7 @@ export async function analyseMarketData(
     low24h: low,
     quoteVolume24h: Number(ticker.quoteVolume),
     rangePosition: span > 0 ? (price - low) / span : 0.5,
+    provenance: { source, tool },
   };
 }
 
@@ -70,6 +80,7 @@ export interface DepthResult {
   /** Estimated slippage in bps for a $100k market order each way. */
   slippageBuyBps: number;
   slippageSellBps: number;
+  provenance: Provenance;
 }
 
 /** Sums notional value across book levels. */
@@ -133,7 +144,7 @@ export async function analyseDepth(
   symbol: string,
   limit = 100,
 ): Promise<DepthResult> {
-  const book = await fetchOrderBook(symbol, limit);
+  const { data: book, source, tool } = await fetchOrderBook(symbol, limit);
 
   const bestBid = Number(book.bids[0]?.[0] ?? 0);
   const bestAsk = Number(book.asks[0]?.[0] ?? 0);
@@ -154,6 +165,7 @@ export async function analyseDepth(
     walls: [...findWalls(book, "bid"), ...findWalls(book, "ask")],
     slippageBuyBps: estimateSlippageBps(book.asks, bestAsk, 100_000),
     slippageSellBps: estimateSlippageBps(book.bids, bestBid, 100_000),
+    provenance: { source, tool },
   };
 }
 
@@ -163,6 +175,7 @@ export interface SentimentResult {
   score: number;
   label: "bearish" | "neutral" | "bullish";
   drivers: { name: string; contribution: number; note: string }[];
+  provenance: Provenance;
 }
 
 /**
@@ -176,10 +189,13 @@ export async function analyseSentiment(
   symbol: string,
   window = "1h",
 ): Promise<SentimentResult> {
-  const [ticker, klines] = await Promise.all([
+  const [tickerResult, klineResult] = await Promise.all([
     fetchTicker(symbol),
     fetchKlines(symbol, window, 48),
   ]);
+
+  const ticker = tickerResult.data;
+  const klines = klineResult.data;
 
   const change = Number(ticker.priceChangePercent);
   const momentum = Math.max(-1, Math.min(1, change / 5));
@@ -228,6 +244,8 @@ export async function analyseSentiment(
             : `Recent volume down ${(Math.abs(volumeTrend) * 100).toFixed(0)}%`,
       },
     ],
+    // Both inputs share a path; report the ticker's, which drives most of the score.
+    provenance: { source: tickerResult.source, tool: tickerResult.tool },
   };
 }
 
@@ -241,13 +259,14 @@ export interface RiskResult {
   suggestedMaxLeverage: number;
   liquidationDistancePercent: number;
   verdict: "low" | "moderate" | "elevated" | "high";
+  provenance: Provenance;
 }
 
 export async function analyseRisk(
   symbol: string,
   notionalUsd = 10_000,
 ): Promise<RiskResult> {
-  const klines = await fetchKlines(symbol, "1h", 168);
+  const { data: klines, source, tool } = await fetchKlines(symbol, "1h", 168);
   const annualised = realisedVolatility(klines);
 
   // Scale annual vol to a single day, then take the 95% one-tailed quantile.
@@ -277,6 +296,7 @@ export async function analyseRisk(
     suggestedMaxLeverage,
     liquidationDistancePercent,
     verdict,
+    provenance: { source, tool },
   };
 }
 
@@ -288,6 +308,12 @@ export interface ReportResult {
   headline: string;
   narrative: string[];
   levels: { label: string; value: number }[];
+  /**
+   * Order parameters awaiting human approval. Attached by the report route
+   * rather than composeReport, which stays a pure function over findings.
+   * Null when the call is neutral — no edge means no trade to propose.
+   */
+  orderPreview?: OrderPreview | null;
 }
 
 export interface ReportInput {

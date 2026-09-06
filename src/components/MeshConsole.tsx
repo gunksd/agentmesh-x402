@@ -17,6 +17,7 @@ import { AgentCard } from "./AgentCard";
 import { BazaarPanel } from "./BazaarPanel";
 import { MeshGraph } from "./MeshGraph";
 import { ProtocolLog } from "./ProtocolLog";
+import { OrderPreviewPanel } from "./OrderPreviewPanel";
 import { ReportPanel } from "./ReportPanel";
 import { RunStats } from "./RunStats";
 import { Button } from "./ui/Button";
@@ -181,13 +182,39 @@ export function MeshConsole() {
       </div>
 
       {report ? (
-        <Card className="mt-5">
-          <CardHeader
-            title="Delivered report"
-            description="Released after the final settlement confirmed."
-          />
-          <ReportPanel report={report} />
-        </Card>
+        <div className="mt-5 grid gap-5 lg:grid-cols-2">
+          <Card>
+            <CardHeader
+              title="Delivered report"
+              description="Released after the final settlement confirmed."
+            />
+            <ReportPanel report={report} />
+          </Card>
+
+          {report.orderPreview ? (
+            <Card>
+              <CardHeader
+                title="Order preview"
+                description="What the mesh concluded, as executable parameters."
+              />
+              <OrderPreviewPanel order={report.orderPreview} />
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader
+                title="Order preview"
+                description="No order proposed."
+              />
+              <CardBody>
+                <p className="text-[12px] leading-relaxed text-[var(--muted)]">
+                  The report found no directional edge, so the mesh proposes no
+                  trade. Manufacturing one would contradict the analysis it was
+                  just paid for.
+                </p>
+              </CardBody>
+            </Card>
+          )}
+        </div>
       ) : null}
     </div>
   );
