@@ -11,6 +11,7 @@
  */
 
 import { ArrowRight } from "lucide-react";
+import { GridBackdrop } from "./GridBackdrop";
 import { PIPELINE_TOTAL_USD } from "@/lib/agents/registry";
 import { formatUsd } from "@/lib/utils";
 import { useLanguage } from "./LanguageProvider";
@@ -33,6 +34,7 @@ export function Hero() {
   return (
     <header className="relative overflow-hidden border-b border-[var(--border)]">
       <div aria-hidden className="grid-backdrop absolute inset-0" />
+      <GridBackdrop />
 
       <div className="relative mx-auto w-full max-w-6xl px-6 pb-16 pt-16 sm:pb-24 sm:pt-24">
         <div className="flex flex-wrap items-center justify-between gap-3">
