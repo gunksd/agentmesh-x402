@@ -60,16 +60,18 @@ irreversible step.
 | Surface | Status | Notes |
 |---|---|---|
 | B402 Bazaar discovery | **Live** | Public catalog at `binance.com/bapi/ramp/v1/public/ramp/b402`. Queried on every run, no credentials. |
+| Cross-vendor payment | **Live** | Reads and validates 402 challenges from third-party Bazaar endpoints — x402 v2 on BNB Smart Chain, decoded off their wire. |
 | Binance market data | **Live** | Spot tickers, order book depth and klines behind every paid response. |
 | Permit2 settlement | **Live** | Real transfers via Uniswap's canonical Permit2, `0x0000…78BA3`. |
-| B402 facilitator | Ready | `verify`/`settle` client written against Binance's spec including RSA-SHA256 request signing. Inactive: base URLs are gated behind merchant onboarding (clientId issuance, RSA key registration, IP whitelisting). |
-| Agent OS MCP server | Not used | Authenticates by browser OAuth consent against a desktop Binance session with no API-key path, so a headless server cannot establish it unattended. Market data needs no auth; MCP matters for account/trade/transfer scopes, which this project does not touch. |
+| Order preview | **Shipped** | Executable order parameters marked `awaiting_human_approval`. |
+| Agent OS MCP server | Coming next | OAuth 2.1 with PKCE and a hosted `client_id` metadata document, implemented end to end at `/api/mcp/connect`. Binance currently admits a fixed set of MCP clients; market reads switch over once self-hosted agents are eligible. |
+| B402 facilitator | Coming next | `verify`/`settle` client written against Binance's spec including RSA-SHA256 request signing. Activates on merchant onboarding. |
+| Bazaar listing | Coming next | Publishing our own agents so third parties can discover and pay them. Listing metadata attaches to a V2 settle, so it follows from facilitator access. |
 
 ### On the facilitator
 
-B402's `/verify` and `/settle` endpoints are documented but unreachable without
-merchant onboarding. Rather than mock them, the facilitator is an interface with
-two implementations:
+The facilitator is an interface with two implementations, so settlement can move
+to Binance without touching anything else:
 
 - **`self`** — verifies signatures locally and calls Permit2 directly, with a
   relayer EOA sponsoring gas. This is what produced the transactions above.

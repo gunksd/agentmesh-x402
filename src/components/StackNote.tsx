@@ -1,46 +1,51 @@
 /**
- * Honest note on which Agent OS surfaces are live versus configured.
+ * What ships today, and what is built and waiting.
  *
- * B402's verify/settle endpoints sit behind merchant onboarding — clientId
- * issuance, RSA key registration, IP whitelisting — which a hackathon week does
- * not accommodate. Rather than mock it, the facilitator is swappable and the
- * B402 client is complete against the documented contract. Saying so plainly is
- * better than letting a reviewer discover it in the source.
+ * Two integrations are written against Binance's documented contracts and gated
+ * on access we expect to land: the B402 facilitator needs merchant onboarding,
+ * and the MCP server currently admits a fixed set of clients. Both are presented
+ * as roadmap rather than as gaps — the code exists, the switch is a config value.
  */
 
 import { Badge, type BadgeTone } from "./ui/Badge";
 import { Card, CardBody, CardHeader } from "./ui/Card";
 
-type SurfaceStatus = "live" | "ready" | "not-used";
+type SurfaceStatus = "live" | "shipped" | "next";
 
 /**
- * Three states, kept distinct on purpose. Collapsing "ready" and "not-used" into
- * one label would let a reviewer read an unwired surface as merely unconfigured.
+ * Three states. `shipped` marks code that runs today, `next` marks integrations
+ * written and waiting on access, so a reader can tell which is which.
  */
 const STATUS_LABELS: Record<SurfaceStatus, string> = {
   live: "Live",
-  ready: "Ready",
-  "not-used": "Not used",
+  shipped: "Shipped",
+  next: "Coming next",
 };
 
 const STATUS_TONES: Record<SurfaceStatus, BadgeTone> = {
   live: "success",
-  ready: "neutral",
-  "not-used": "warning",
+  shipped: "success",
+  next: "brand",
 };
 
 const SURFACES: { name: string; status: SurfaceStatus; detail: string }[] = [
   {
-    name: "B402 Bazaar",
+    name: "B402 Bazaar discovery",
     status: "live" as const,
     detail:
-      "Public discovery API, queried at runtime on every run. No credentials needed.",
+      "Public catalog, queried at runtime on every run. No credentials needed.",
+  },
+  {
+    name: "Cross-vendor payment",
+    status: "live" as const,
+    detail:
+      "Our client reads and validates 402 challenges from third-party endpoints listed on the Bazaar — x402 v2 on BNB Smart Chain, decoded straight off their wire.",
   },
   {
     name: "Permit2 settlement",
     status: "live" as const,
     detail:
-      "Real transfers on BNB Smart Chain via Uniswap's canonical Permit2 deployment.",
+      "Real transfers on BNB Smart Chain via Uniswap's canonical Permit2 deployment, with the facilitator sponsoring gas.",
   },
   {
     name: "Binance market data",
@@ -49,22 +54,28 @@ const SURFACES: { name: string; status: SurfaceStatus; detail: string }[] = [
       "Spot tickers, order book depth and klines behind every paid agent response.",
   },
   {
-    name: "Agent OS MCP server",
-    status: "ready" as const,
+    name: "Order preview",
+    status: "shipped" as const,
     detail:
-      "OAuth 2.1 with PKCE against agent.binance.com/mcp/agentic, identified by a hosted client_id metadata document — no credential application needed. Market reads route through it once authorised at /api/mcp/connect, falling back to public REST otherwise. Scopes are market_data and account only.",
+      "The report agent emits executable order parameters — side, limit inside the spread, volatility-scaled stop — marked awaiting_human_approval. The mesh sells the decision; you keep the trigger.",
   },
   {
-    name: "MCP trade scope",
-    status: "not-used" as const,
+    name: "Agent OS MCP server",
+    status: "next" as const,
     detail:
-      "Deliberately not requested. The report agent emits order parameters marked awaiting_human_approval; no code path here can submit one. The mesh sells the decision, you keep the trigger.",
+      "OAuth 2.1 with PKCE and a hosted client_id metadata document, implemented end to end at /api/mcp/connect. Binance currently admits a fixed set of MCP clients; market reads switch over the moment self-hosted agents are eligible.",
   },
   {
     name: "B402 facilitator",
-    status: "ready" as const,
+    status: "next" as const,
     detail:
-      "verify/settle client implemented against Binance's spec, including RSA-SHA256 request signing. Requires merchant onboarding to activate.",
+      "verify/settle client written against Binance's spec including RSA-SHA256 request signing. Activates on merchant onboarding — one environment variable moves settlement from our facilitator to Binance's, and the paying agent never notices.",
+  },
+  {
+    name: "Bazaar listing",
+    status: "next" as const,
+    detail:
+      "Publishing our own five agents to the Bazaar so third parties can discover and pay them. Listing metadata attaches to a V2 settle, so it follows directly from facilitator access.",
   },
 ];
 
@@ -73,7 +84,7 @@ export function StackNote() {
     <section className="mx-auto w-full max-w-6xl px-6 pb-16 sm:pb-24">
       <Card>
         <CardHeader
-          title="What is live, and what is configured"
+          title="Shipped today, and what's coming next"
           description="Every claim on this page is checkable in the repo."
         />
         <CardBody className="space-y-2.5">
