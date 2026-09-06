@@ -3,10 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "NODE_USE_ENV_PROXY=1 next dev",
     "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+    "start": "NODE_USE_ENV_PROXY=1 next start",
+    "lint": "eslint",
+    "compile": "node scripts/compile.mjs",
+    "wallets": "node scripts/wallets.mjs",
+    "deploy:token": "node scripts/compile.mjs && node scripts/deploy.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",

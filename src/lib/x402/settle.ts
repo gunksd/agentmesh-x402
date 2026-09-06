@@ -21,6 +21,7 @@
 import { encodeAbiParameters, keccak256, parseAbiParameters } from "viem";
 import { PERMIT2_ABI, PERMIT2_WITNESS_TYPE_STRING } from "./abi";
 import { publicClient, relayerClient } from "./clients";
+import { allocateNonce, releaseNonce } from "./nonce";
 import { PERMIT2_ADDRESS } from "@/lib/chain";
 import type {
   PaymentPayload,
@@ -60,8 +61,15 @@ export async function settlePayment(
   const auth = payload.payload.permit2Authorization;
   const wallet = relayerClient();
 
+  // Reserve a distinct nonce so concurrent settlements do not collide. Without
+  // this, parallel payments all read the same pending nonce and the RPC keeps
+  // only one of them.
+  const relayer = wallet.account.address;
+  const nonce = await allocateNonce(relayer);
+
   try {
     const hash = await wallet.writeContract({
+      nonce,
       address: PERMIT2_ADDRESS,
       abi: PERMIT2_ABI,
       functionName: "permitWitnessTransferFrom",
@@ -107,6 +115,10 @@ export async function settlePayment(
       payer: auth.from,
     };
   } catch (error) {
+    // The reserved nonce was never mined, so every later one is now too high and
+    // would sit unmineable. Drop the cache and re-read the chain next time.
+    releaseNonce(relayer);
+
     return {
       success: false,
       network: payload.network,
