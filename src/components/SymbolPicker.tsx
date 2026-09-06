@@ -22,6 +22,7 @@ import {
 import { ChevronDown, Loader2, Search, Sparkles } from "lucide-react";
 import type { TradingPair } from "@/lib/agents/symbols";
 import { Badge } from "./ui/Badge";
+import { useLanguage } from "./LanguageProvider";
 import { cn, formatCompact } from "@/lib/utils";
 
 /** Long enough to skip intermediate keystrokes, short enough to feel live. */
@@ -43,6 +44,7 @@ export function SymbolPicker({
   onChange: (symbol: string) => void;
   disabled?: boolean;
 }) {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [alphaOnly, setAlphaOnly] = useState(false);
@@ -177,7 +179,7 @@ export function SymbolPicker({
         htmlFor="symbol-picker"
         className="block text-[11px] font-medium text-[var(--muted)]"
       >
-        Trading pair
+        {t("fieldPair")}
       </label>
 
       <div className="relative mt-1.5">
@@ -194,7 +196,7 @@ export function SymbolPicker({
               : undefined
           }
           value={open ? query : value}
-          placeholder={open ? "Search 800+ pairs…" : value}
+          placeholder={open ? t("fieldPairPlaceholder") : value}
           disabled={disabled}
           spellCheck={false}
           autoComplete="off"
@@ -221,7 +223,7 @@ export function SymbolPicker({
         <button
           type="button"
           tabIndex={-1}
-          aria-label={open ? "Close pair list" : "Open pair list"}
+          aria-label={open ? t("fieldPairClose") : t("fieldPairOpen")}
           disabled={disabled}
           onClick={() => {
             setOpen((next) => !next);
@@ -253,7 +255,7 @@ export function SymbolPicker({
         >
           <div className="flex items-center justify-between gap-2 border-b border-[var(--border)] px-3 py-2">
             <span className="text-[10px] text-[var(--subtle)]">
-              {meta.total.toLocaleString()} pairs · live from exchangeInfo
+              {meta.total.toLocaleString()} {t("fieldPairMeta")}
             </span>
             <button
               type="button"
@@ -267,7 +269,7 @@ export function SymbolPicker({
               )}
             >
               <Sparkles aria-hidden className="size-3" />
-              Alpha only
+              {t("fieldAlphaOnly")}
               {meta.alphaCount > 0 ? ` (${meta.alphaCount})` : ""}
             </button>
           </div>
@@ -285,7 +287,7 @@ export function SymbolPicker({
               </li>
             ) : pairs.length === 0 ? (
               <li className="px-3 py-3 text-[11px] text-[var(--subtle)]">
-                {loading ? "Searching…" : `No pair matches "${query}"`}
+                {loading ? t("fieldPairSearching") : `${t("fieldPairNoMatch")} "${query}"`}
               </li>
             ) : (
               pairs.map((pair, index) => (
@@ -334,7 +336,7 @@ export function SymbolPicker({
 
           {alphaOnly && alphaShown > 0 ? (
             <p className="border-t border-[var(--border)] px-3 py-1.5 text-[10px] text-[var(--subtle)]">
-              Alpha volume is 24h, from Binance&apos;s public Alpha catalog.
+              {t("fieldAlphaNote")}
             </p>
           ) : null}
         </div>

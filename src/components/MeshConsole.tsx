@@ -19,6 +19,7 @@ import { InteropPanel } from "./InteropPanel";
 import { MeshGraph } from "./MeshGraph";
 import { ProtocolLog } from "./ProtocolLog";
 import { SymbolPicker } from "./SymbolPicker";
+import { useLanguage } from "./LanguageProvider";
 import { OrderPreviewPanel } from "./OrderPreviewPanel";
 import { ReportPanel } from "./ReportPanel";
 import { RunStats } from "./RunStats";
@@ -30,6 +31,7 @@ import { Badge } from "./ui/Badge";
 const SUGGESTED_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"];
 
 export function MeshConsole() {
+  const { t } = useLanguage();
   const { state, start, stop } = useOrchestration();
   const [symbol, setSymbol] = useState("BTCUSDT");
   const [notional, setNotional] = useState(10_000);
@@ -41,16 +43,13 @@ export function MeshConsole() {
     <div id="console" className="mx-auto w-full max-w-6xl px-6 py-14 sm:py-20">
       <div className="flex flex-col gap-2">
         <Badge tone="brand" className="w-fit">
-          Live on BNB Smart Chain
+          {t("consoleBadge")}
         </Badge>
         <h2 className="text-[26px] font-semibold tracking-tight sm:text-[30px]">
-          Run the mesh
+          {t("consoleTitle")}
         </h2>
         <p className="max-w-2xl text-[13px] leading-relaxed text-[var(--muted)]">
-          Pick a market and start a run. The orchestrator discovers what it can
-          pay for, then buys five analyses in sequence — signing an EIP-712
-          authorisation per invoice and settling each one on-chain before the
-          resource is released.
+          {t("consoleBody")}
         </p>
       </div>
 
@@ -83,7 +82,7 @@ export function MeshConsole() {
               htmlFor="notional"
               className="block text-[11px] font-medium text-[var(--muted)]"
             >
-              Position size (USD)
+              {t("fieldNotional")}
             </label>
             <input
               id="notional"
@@ -100,12 +99,12 @@ export function MeshConsole() {
           {running ? (
             <Button variant="secondary" onClick={stop}>
               <Square aria-hidden className="size-3.5" />
-              Stop
+              {t("actionStop")}
             </Button>
           ) : (
             <Button onClick={() => start(symbol, notional)}>
               <Play aria-hidden className="size-3.5" />
-              Start run
+              {t("actionStart")}
             </Button>
           )}
         </CardBody>
@@ -126,8 +125,8 @@ export function MeshConsole() {
       <div className="mt-5 grid gap-5 lg:grid-cols-[1.55fr_1fr]">
         <Card>
           <CardHeader
-            title="Payment topology"
-            description="Edges animate while a settlement is in flight."
+            title={t("panelTopology")}
+            description={t("panelTopologyBody")}
             action={
               running ? (
                 <Loader2
@@ -144,8 +143,8 @@ export function MeshConsole() {
 
         <Card>
           <CardHeader
-            title="B402 Bazaar discovery"
-            description="Public catalog, no API key required."
+            title={t("panelBazaar")}
+            description={t("panelBazaarBody")}
           />
           <BazaarPanel bazaar={state.bazaar} />
         </Card>
@@ -153,8 +152,8 @@ export function MeshConsole() {
 
       <Card className="mt-5">
         <CardHeader
-          title="Cross-vendor interoperability"
-          description="Our client reading strangers' 402 challenges, live."
+          title={t("panelInterop")}
+          description={t("panelInteropBody")}
         />
         <InteropPanel />
       </Card>
@@ -163,8 +162,8 @@ export function MeshConsole() {
       <div className="mt-5 grid gap-5 lg:grid-cols-2">
         <Card>
           <CardHeader
-            title="Agents"
-            description="Each one returns 402 until its invoice settles."
+            title={t("panelAgents")}
+            description={t("panelAgentsBody")}
           />
           <CardBody className="space-y-2">
             {AGENT_LIST.map((agent) => (
@@ -177,8 +176,8 @@ export function MeshConsole() {
             the grid row gives this card, rather than leaving it blank. */}
         <Card className="flex flex-col">
           <CardHeader
-            title="Protocol log"
-            description="Raw x402 events, newest last."
+            title={t("panelLog")}
+            description={t("panelLogBody")}
           />
           <ProtocolLog events={state.log} />
         </Card>
@@ -188,8 +187,8 @@ export function MeshConsole() {
         <div className="mt-5 grid gap-5 lg:grid-cols-2">
           <Card>
             <CardHeader
-              title="Delivered report"
-              description="Released after the final settlement confirmed."
+              title={t("panelReport")}
+              description={t("panelReportBody")}
             />
             <ReportPanel report={report} />
           </Card>
@@ -197,22 +196,20 @@ export function MeshConsole() {
           {report.orderPreview ? (
             <Card>
               <CardHeader
-                title="Order preview"
-                description="What the mesh concluded, as executable parameters."
+                title={t("panelOrder")}
+                description={t("panelOrderBody")}
               />
               <OrderPreviewPanel order={report.orderPreview} />
             </Card>
           ) : (
             <Card>
               <CardHeader
-                title="Order preview"
-                description="No order proposed."
+                title={t("panelOrder")}
+                description={t("panelOrderNoneTitle")}
               />
               <CardBody>
                 <p className="text-[12px] leading-relaxed text-[var(--muted)]">
-                  The report found no directional edge, so the mesh proposes no
-                  trade. Manufacturing one would contradict the analysis it was
-                  just paid for.
+                  {t("panelOrderNone")}
                 </p>
               </CardBody>
             </Card>

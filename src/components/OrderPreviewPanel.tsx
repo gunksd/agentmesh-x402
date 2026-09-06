@@ -11,6 +11,7 @@
 import { ShieldCheck } from "lucide-react";
 import type { OrderPreview } from "@/lib/agents/order";
 import { Badge } from "./ui/Badge";
+import { useLanguage } from "./LanguageProvider";
 import { cn, formatPrice, formatUsd } from "@/lib/utils";
 
 function Field({
@@ -41,6 +42,7 @@ function Field({
 }
 
 export function OrderPreviewPanel({ order }: { order: OrderPreview }) {
+  const { t } = useLanguage();
   const isBuy = order.side === "BUY";
 
   return (
@@ -55,15 +57,15 @@ export function OrderPreviewPanel({ order }: { order: OrderPreview }) {
             {order.type} · {order.leverage.toFixed(1)}x
           </span>
         </div>
-        <Badge tone="warning">Awaiting your approval</Badge>
+        <Badge tone="warning">{t("orderAwaiting")}</Badge>
       </div>
 
       <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
-        <Field label="Quantity" value={String(order.quantity)} />
-        <Field label="Limit price" value={formatPrice(order.price)} />
-        <Field label="Stop loss" value={formatPrice(order.stopLossPrice)} tone="danger" />
+        <Field label={t("orderQuantity")} value={String(order.quantity)} />
+        <Field label={t("orderLimit")} value={formatPrice(order.price)} />
+        <Field label={t("orderStop")} value={formatPrice(order.stopLossPrice)} tone="danger" />
         <Field
-          label="Take profit"
+          label={t("orderTarget")}
           value={formatPrice(order.takeProfitPrice)}
           tone="success"
         />
@@ -71,7 +73,7 @@ export function OrderPreviewPanel({ order }: { order: OrderPreview }) {
 
       <div className="mt-3 border-t border-[var(--border)] pt-3">
         <p className="text-[11px] text-[var(--subtle)]">
-          Notional{" "}
+          {t("orderNotional")}{" "}
           <span className="numeric font-semibold text-[var(--foreground)]">
             {formatUsd(order.notionalUsd)}
           </span>
@@ -95,13 +97,7 @@ export function OrderPreviewPanel({ order }: { order: OrderPreview }) {
           className="mt-0.5 size-4 shrink-0 text-[var(--brand)]"
         />
         <p className="text-[11px] leading-relaxed text-[var(--muted)]">
-          Executing this would need the Agent OS{" "}
-          <span className="numeric text-[var(--foreground)]">trade</span> scope.
-          AgentMesh requests{" "}
-          <span className="numeric text-[var(--foreground)]">market_data</span> and{" "}
-          <span className="numeric text-[var(--foreground)]">account</span> only, so
-          no code path here can place an order. The mesh sells the decision; you
-          keep the trigger.
+          {t("orderScopeNote")}
         </p>
       </div>
     </div>

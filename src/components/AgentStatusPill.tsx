@@ -1,22 +1,30 @@
+"use client";
+
+import { useLanguage } from "./LanguageProvider";
 import { Badge, type BadgeTone } from "./ui/Badge";
 import type { AgentStatus } from "@/hooks/useOrchestration";
+import type { MessageKey } from "@/lib/i18n/dictionary";
 
 /**
- * Human labels for the payment state machine. Wording tracks the x402 protocol
- * steps so the UI teaches the flow while it runs.
+ * Labels for the payment state machine. Wording tracks the x402 protocol steps
+ * so the UI teaches the flow while it runs.
  */
-const STATUS_META: Record<AgentStatus, { label: string; tone: BadgeTone }> = {
-  idle: { label: "Idle", tone: "neutral" },
-  quoted: { label: "402 quoted", tone: "warning" },
-  signed: { label: "Signed", tone: "brand" },
-  settled: { label: "Settled on-chain", tone: "success" },
-  delivered: { label: "Delivered", tone: "success" },
-  failed: { label: "Failed", tone: "danger" },
+const STATUS_META: Record<
+  AgentStatus,
+  { key: MessageKey; tone: BadgeTone }
+> = {
+  idle: { key: "statusIdle", tone: "neutral" },
+  quoted: { key: "statusQuoted", tone: "warning" },
+  signed: { key: "statusSigned", tone: "brand" },
+  settled: { key: "statusSettled", tone: "success" },
+  delivered: { key: "statusDelivered", tone: "success" },
+  failed: { key: "statusFailed", tone: "danger" },
 };
 
 export function AgentStatusPill({ status }: { status: AgentStatus }) {
-  const { label, tone } = STATUS_META[status];
-  return <Badge tone={tone}>{label}</Badge>;
+  const { t } = useLanguage();
+  const { key, tone } = STATUS_META[status];
+  return <Badge tone={tone}>{t(key)}</Badge>;
 }
 
 export { STATUS_META };

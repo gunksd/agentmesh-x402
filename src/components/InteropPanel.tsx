@@ -14,6 +14,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Loader2, RefreshCw } from "lucide-react";
 import type { InteropProbe, InteropReport } from "@/lib/agents/interop";
 import { Badge } from "./ui/Badge";
+import { useLanguage } from "./LanguageProvider";
 import { cn, formatUsd } from "@/lib/utils";
 
 function host(url: string): string {
@@ -21,6 +22,7 @@ function host(url: string): string {
 }
 
 function ProbeRow({ probe }: { probe: InteropProbe }) {
+  const { t } = useLanguage();
   const observed = probe.observed;
   const compatible =
     observed?.status === 402 &&
@@ -34,11 +36,11 @@ function ProbeRow({ probe }: { probe: InteropProbe }) {
           {host(probe.resource)}
         </p>
         {compatible ? (
-          <Badge tone="success">Payable</Badge>
+          <Badge tone="success">{t("interopPayable")}</Badge>
         ) : probe.reachable ? (
-          <Badge tone="warning">Incompatible</Badge>
+          <Badge tone="warning">{t("interopIncompatible")}</Badge>
         ) : (
-          <Badge tone="neutral">Unreachable</Badge>
+          <Badge tone="neutral">{t("interopUnreachable")}</Badge>
         )}
       </div>
 
@@ -64,6 +66,7 @@ function ProbeRow({ probe }: { probe: InteropProbe }) {
 }
 
 export function InteropPanel({ className }: { className?: string }) {
+  const { t } = useLanguage();
   const [report, setReport] = useState<InteropReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,8 +95,11 @@ export function InteropPanel({ className }: { className?: string }) {
       <div className="flex items-start justify-between gap-3">
         <p className="text-[11px] leading-relaxed text-[var(--muted)]">
           {report
-            ? `${report.summary.quoting402}/${report.probes.length} third-party endpoints returned a valid 402 our client can read. Nothing was paid.`
-            : "Calling endpoints strangers listed on the Bazaar."}
+            ? t("panelInteropSummary", {
+                ok: report.summary.quoting402,
+                total: report.probes.length,
+              })
+            : t("panelInteropIdle")}
         </p>
         <button
           type="button"
@@ -106,7 +112,7 @@ export function InteropPanel({ className }: { className?: string }) {
           ) : (
             <RefreshCw aria-hidden className="size-3" />
           )}
-          Re-probe
+          {t("panelInteropReprobe")}
         </button>
       </div>
 

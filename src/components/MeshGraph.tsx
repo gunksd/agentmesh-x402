@@ -12,6 +12,8 @@
  */
 
 import { AGENTS, type AgentSkill } from "@/lib/agents/registry";
+import { useLanguage } from "./LanguageProvider";
+import { AGENT_COPY, pick } from "@/lib/i18n/content";
 import type { AgentState, AgentStatus } from "@/hooks/useOrchestration";
 import { cn, formatUsd, shortHash } from "@/lib/utils";
 
@@ -87,6 +89,7 @@ export function MeshGraph({
   agents: Record<AgentSkill, AgentState>;
   className?: string;
 }) {
+  const { lang } = useLanguage();
   const reportState = agents.report;
 
   return (
@@ -232,7 +235,7 @@ export function MeshGraph({
                 textAnchor="middle"
                 className="fill-[var(--foreground)] text-[10px] font-medium"
               >
-                {agent.name.replace(" Agent", "")}
+                {pick(AGENT_COPY[skill].name, lang).replace(/ ?Agent$/, "")}
               </text>
 
               {state.transaction ? (

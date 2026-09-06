@@ -10,6 +10,7 @@
 import { PIPELINE_TOTAL_USD } from "@/lib/agents/registry";
 import type { RunState } from "@/hooks/useOrchestration";
 import { cn, formatDuration, formatUsd } from "@/lib/utils";
+import { useLanguage } from "./LanguageProvider";
 
 function Metric({
   label,
@@ -49,6 +50,7 @@ export function RunStats({
   state: RunState;
   className?: string;
 }) {
+  const { t } = useLanguage();
   // Mid-run, sum what has actually settled rather than showing the final total.
   const settledSoFar = Object.values(state.agents).filter(
     (agent) => agent.status === "settled" || agent.status === "delivered",
@@ -72,25 +74,25 @@ export function RunStats({
       )}
     >
       <Metric
-        label="Spent on-chain"
+        label={t("metricSpent")}
         value={formatUsd(spent)}
-        hint={`of ${formatUsd(PIPELINE_TOTAL_USD)} budget`}
+        hint={t("metricSpentHint", { total: formatUsd(PIPELINE_TOTAL_USD) })}
         emphasis
       />
       <Metric
-        label="Agents paid"
+        label={t("metricAgents")}
         value={`${settledSoFar.length}/${Object.keys(state.agents).length}`}
-        hint="settlements confirmed"
+        hint={t("metricAgentsHint")}
       />
       <Metric
-        label="Wall clock"
+        label={t("metricClock")}
         value={state.elapsedMs ? formatDuration(state.elapsedMs) : "—"}
-        hint="discovery to report"
+        hint={t("metricClockHint")}
       />
       <Metric
-        label="Human approvals"
+        label={t("metricApprovals")}
         value="0"
-        hint="fully autonomous"
+        hint={t("metricApprovalsHint")}
       />
     </dl>
   );

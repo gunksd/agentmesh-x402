@@ -11,14 +11,16 @@ import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react";
 import type { Direction, ReportResult } from "@/lib/agents/analysis";
 import { Badge, type BadgeTone } from "./ui/Badge";
 import { cn, formatPrice } from "@/lib/utils";
+import { useLanguage } from "./LanguageProvider";
+import type { MessageKey } from "@/lib/i18n/dictionary";
 
 const DIRECTION_META: Record<
   Direction,
-  { label: string; tone: BadgeTone; Icon: typeof ArrowUpRight }
+  { key: MessageKey; tone: BadgeTone; Icon: typeof ArrowUpRight }
 > = {
-  long: { label: "Long bias", tone: "success", Icon: ArrowUpRight },
-  short: { label: "Short bias", tone: "danger", Icon: ArrowDownRight },
-  neutral: { label: "No edge", tone: "neutral", Icon: ArrowRight },
+  long: { key: "directionLong", tone: "success", Icon: ArrowUpRight },
+  short: { key: "directionShort", tone: "danger", Icon: ArrowDownRight },
+  neutral: { key: "directionNeutral", tone: "neutral", Icon: ArrowRight },
 };
 
 export function ReportPanel({
@@ -28,7 +30,8 @@ export function ReportPanel({
   report: ReportResult;
   className?: string;
 }) {
-  const { label, tone, Icon } = DIRECTION_META[report.direction];
+  const { t } = useLanguage();
+  const { key, tone, Icon } = DIRECTION_META[report.direction];
   const confidencePercent = Math.round(report.confidence * 100);
 
   return (
@@ -39,14 +42,14 @@ export function ReportPanel({
         </h3>
         <Badge tone={tone} className="mt-0.5 gap-1">
           <Icon aria-hidden className="size-3" />
-          {label}
+          {t(key)}
         </Badge>
       </div>
 
       {/* Confidence as a bar rather than a number alone — easier to read at a glance. */}
       <div className="mt-3.5">
         <div className="flex items-center justify-between text-[11px]">
-          <span className="text-[var(--subtle)]">Confidence</span>
+          <span className="text-[var(--subtle)]">{t("reportConfidence")}</span>
           <span className="numeric font-semibold">{confidencePercent}%</span>
         </div>
         <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-[var(--surface)]">

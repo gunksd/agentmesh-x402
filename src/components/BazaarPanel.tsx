@@ -12,6 +12,7 @@
 import { Radar } from "lucide-react";
 import type { BazaarSample } from "@/hooks/useOrchestration";
 import { Badge } from "./ui/Badge";
+import { useLanguage } from "./LanguageProvider";
 import { cn, formatUsd } from "@/lib/utils";
 
 /** Strips the scheme and trailing slash so hosts read cleanly in a tight column. */
@@ -26,6 +27,8 @@ export function BazaarPanel({
   bazaar: { count: number; sample: BazaarSample[] } | null;
   className?: string;
 }) {
+  const { t } = useLanguage();
+
   if (!bazaar) {
     return (
       <div
@@ -36,7 +39,7 @@ export function BazaarPanel({
       >
         <Radar aria-hidden className="size-4 text-[var(--subtle)]" />
         <p className="text-[12px] text-[var(--subtle)]">
-          Discovery runs before the first payment.
+          {t("panelBazaarIdle")}
         </p>
       </div>
     );
@@ -46,8 +49,7 @@ export function BazaarPanel({
     return (
       <div className={cn("px-5 py-4", className)}>
         <p className="text-[12px] leading-relaxed text-[var(--muted)]">
-          The Bazaar returned no matching listings for this query. Discovery is
-          additive here — the mesh still runs against its own agents.
+          {t("panelBazaarEmpty")}
         </p>
       </div>
     );
@@ -59,8 +61,7 @@ export function BazaarPanel({
         <span className="numeric font-semibold text-[var(--foreground)]">
           {bazaar.count}
         </span>{" "}
-        third-party endpoints on Binance B402 Bazaar accept x402 payment for this
-        query. Any of them is callable by the same signing path used below.
+        {t("panelBazaarFoundA")}
       </p>
 
       <ul className="mt-3 space-y-2">

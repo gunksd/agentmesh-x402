@@ -10,7 +10,9 @@
 
 import { useEffect, useRef } from "react";
 import type { OrchestrationEvent } from "@/lib/agents/events";
-import { AGENTS } from "@/lib/agents/registry";
+import { useLanguage } from "./LanguageProvider";
+import { AGENT_COPY, pick } from "@/lib/i18n/content";
+import type { Lang } from "@/lib/i18n/types";
 import { cn, formatDuration, shortAddress, shortHash } from "@/lib/utils";
 
 interface LogLine {
@@ -28,7 +30,7 @@ const TONE_CLASSES: Record<LogLine["tone"], string> = {
 };
 
 /** Maps a protocol event to one readable line. */
-function describe(event: OrchestrationEvent): LogLine | null {
+function describe(event: OrchestrationEvent, lang: Lang): LogLine | null {
   switch (event.type) {
     case "run:start":
       return {
@@ -48,7 +50,7 @@ function describe(event: OrchestrationEvent): LogLine | null {
       return {
         tone: "warning",
         label: "402.quoted",
-        detail: `${AGENTS[event.skill].name} → ${event.amount} ${event.asset} to ${shortAddress(event.payTo)}`,
+        detail: `${pick(AGENT_COPY[event.skill].name, lang)} → ${event.amount} ${event.asset} to ${shortAddress(event.payTo)}`,
       };
 
     case "agent:signed":
@@ -71,14 +73,14 @@ function describe(event: OrchestrationEvent): LogLine | null {
       return {
         tone: "muted",
         label: "resource.delivered",
-        detail: `${AGENTS[event.skill].name} responded · ${formatDuration(event.elapsedMs)} end to end`,
+        detail: `${pick(AGENT_COPY[event.skill].name, lang)} responded · ${formatDuration(event.elapsedMs)} end to end`,
       };
 
     case "agent:failed":
       return {
         tone: "danger",
         label: "payment.failed",
-        detail: `${AGENTS[event.skill].name} · ${event.reason}`,
+        detail: `${pick(AGENT_COPY[event.skill].name, lang)} · ${event.reason}`,
       };
 
     case "run:complete":
@@ -103,6 +105,7 @@ export function ProtocolLog({
   events: OrchestrationEvent[];
   className?: string;
 }) {
+  const { t, lang } = useLanguage();
   const endRef = useRef<HTMLDivElement>(null);
 
   // Follow the tail as events stream in.
@@ -119,7 +122,7 @@ export function ProtocolLog({
           className,
         )}
       >
-        Protocol events appear here once a run starts.
+        {t("panelLogIdle")}
       </div>
     );
   }
@@ -139,7 +142,7 @@ export function ProtocolLog({
     >
       <ol className="space-y-1.5">
         {events.map((event, index) => {
-          const line = describe(event);
+          const line = describe(event, lang);
           if (!line) return null;
 
           return (

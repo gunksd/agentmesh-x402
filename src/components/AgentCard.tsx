@@ -11,6 +11,8 @@ import { ExternalLink } from "lucide-react";
 import { AGENTS, type AgentSkill } from "@/lib/agents/registry";
 import type { AgentState } from "@/hooks/useOrchestration";
 import { AgentStatusPill } from "./AgentStatusPill";
+import { useLanguage } from "./LanguageProvider";
+import { AGENT_COPY, pick } from "@/lib/i18n/content";
 import { Badge } from "./ui/Badge";
 import { cn, formatDuration, formatUsd, shortHash } from "@/lib/utils";
 
@@ -23,7 +25,9 @@ const ACCENT_CLASSES: Record<AgentSkill, string> = {
 };
 
 export function AgentCard({ state }: { state: AgentState }) {
+  const { t, lang } = useLanguage();
   const agent = AGENTS[state.skill];
+  const copy = AGENT_COPY[state.skill];
   const active = state.status !== "idle";
 
   return (
@@ -49,17 +53,17 @@ export function AgentCard({ state }: { state: AgentState }) {
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <h3 className="truncate text-[13px] font-semibold tracking-tight">
-              {agent.name}
+              {pick(copy.name, lang)}
             </h3>
             {agent.readsLiveMarket ? (
-              <Badge tone="brand">Live data</Badge>
+              <Badge tone="brand">{t("badgeLiveData")}</Badge>
             ) : null}
           </div>
           <AgentStatusPill status={state.status} />
         </div>
 
         <p className="mt-1 text-[12px] leading-relaxed text-[var(--muted)]">
-          {agent.description}
+          {pick(copy.description, lang)}
         </p>
 
         <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px]">
@@ -69,7 +73,7 @@ export function AgentCard({ state }: { state: AgentState }) {
 
           {state.signMs !== undefined ? (
             <span className="text-[var(--subtle)]">
-              signed in{" "}
+              {t("agentSignedIn")}{" "}
               <span className="numeric text-[var(--muted)]">
                 {formatDuration(state.signMs)}
               </span>
@@ -78,7 +82,7 @@ export function AgentCard({ state }: { state: AgentState }) {
 
           {state.settleMs !== undefined ? (
             <span className="text-[var(--subtle)]">
-              settled in{" "}
+              {t("agentSettledIn")}{" "}
               <span className="numeric text-[var(--muted)]">
                 {formatDuration(state.settleMs)}
               </span>
@@ -98,7 +102,7 @@ export function AgentCard({ state }: { state: AgentState }) {
             >
               {shortHash(state.transaction)}
               <ExternalLink aria-hidden className="size-3" />
-              <span className="sr-only">View settlement on BscScan</span>
+              <span className="sr-only">{t("viewOnBscScan")}</span>
             </a>
           ) : null}
 
