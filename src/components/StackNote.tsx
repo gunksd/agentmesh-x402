@@ -50,9 +50,15 @@ const SURFACES: { name: string; status: SurfaceStatus; detail: string }[] = [
   },
   {
     name: "Agent OS MCP server",
+    status: "ready" as const,
+    detail:
+      "OAuth 2.1 with PKCE against agent.binance.com/mcp/agentic, identified by a hosted client_id metadata document — no credential application needed. Market reads route through it once authorised at /api/mcp/connect, falling back to public REST otherwise. Scopes are market_data and account only.",
+  },
+  {
+    name: "MCP trade scope",
     status: "not-used" as const,
     detail:
-      "Not wired in. The connection at agent.binance.com/mcp/agentic authenticates by browser OAuth consent against a desktop Binance session, with no API-key path, so a headless server cannot establish it unattended. Market data needs no auth anyway — MCP matters for account, trade and transfer scopes, which this project does not touch.",
+      "Deliberately not requested. The report agent emits order parameters marked awaiting_human_approval; no code path here can submit one. The mesh sells the decision, you keep the trigger.",
   },
   {
     name: "B402 facilitator",
