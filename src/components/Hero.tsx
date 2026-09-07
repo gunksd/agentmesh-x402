@@ -12,7 +12,7 @@
 
 import { ArrowRight } from "lucide-react";
 import GlassSurface from "./reactbits/GlassSurface";
-import { SquircleShift } from "./SquircleShift";
+import ShapeGrid from "./ShapeGrid";
 import { PIPELINE_TOTAL_USD } from "@/lib/agents/registry";
 import { formatUsd } from "@/lib/utils";
 import { useLanguage } from "./LanguageProvider";
@@ -34,8 +34,25 @@ export function Hero() {
 
   return (
     <header className="relative overflow-hidden border-b border-[var(--border)]">
-      <div aria-hidden className="grid-backdrop absolute inset-0" />
-      <SquircleShift />
+      {/*
+        Owns the whole backdrop. The old .grid-backdrop CSS layer drew 56px lines
+        while this draws at 40px, so the two grids sat visibly out of register.
+
+        Hover fill is the site's brand blue rather than the near-black default,
+        which sat too heavy against a light page and matched nothing else on it.
+        The trail is the same hue at lower alpha, so it reads as one gesture
+        fading out instead of a second colour.
+      */}
+      <ShapeGrid
+        speed={0.5}
+        squareSize={40}
+        direction="diagonal"
+        borderColor="#d4d4d8"
+        hoverFillColor="rgba(11,99,246,0.44)"
+        shape="square"
+        hoverTrailAmount={5}
+        hoverColor="rgba(11,99,246,0.30)"
+      />
 
       <div className="relative mx-auto w-full max-w-6xl px-6 pb-16 pt-16 sm:pb-24 sm:pt-24">
         <div className="flex flex-wrap items-center justify-between gap-3">
