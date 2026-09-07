@@ -11,6 +11,7 @@
  */
 
 import { ArrowRight } from "lucide-react";
+import GlassSurface from "./reactbits/GlassSurface";
 import { SquircleShift } from "./SquircleShift";
 import { PIPELINE_TOTAL_USD } from "@/lib/agents/registry";
 import { formatUsd } from "@/lib/utils";
@@ -76,18 +77,36 @@ export function Hero() {
           </a>
         </div>
 
-        <dl className="mt-12 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-[var(--border)] pt-7 sm:grid-cols-4">
-          {proofPoints.map((point) => (
-            <div key={point.label}>
-              <dt className="text-[10px] uppercase tracking-wide text-[var(--subtle)]">
-                {point.label}
-              </dt>
-              <dd className="numeric mt-1 text-[13px] font-semibold tracking-tight">
-                {point.value}
-              </dd>
-            </div>
-          ))}
-        </dl>
+        {/*
+          Glass over the proof points, which is the one place on the page with
+          something worth refracting: the squircle tiles are moving directly
+          behind this strip. backdrop-filter bends what is behind it, so the same
+          panel over flat white would be invisible.
+        */}
+        <GlassSurface
+          width="100%"
+          height="auto"
+          borderRadius={18}
+          backgroundOpacity={0.42}
+          saturation={1.35}
+          blur={13}
+          displace={0.6}
+          distortionScale={-140}
+          className="mt-12 !block"
+        >
+          <dl className="grid w-full grid-cols-2 gap-x-6 gap-y-5 px-5 py-5 sm:grid-cols-4">
+            {proofPoints.map((point) => (
+              <div key={point.label}>
+                <dt className="text-[10px] uppercase tracking-wide text-[var(--subtle)]">
+                  {point.label}
+                </dt>
+                <dd className="numeric mt-1 text-[13px] font-semibold tracking-tight">
+                  {point.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </GlassSurface>
       </div>
     </header>
   );
