@@ -1,21 +1,24 @@
 "use client";
 
 /**
- * Interactive grid backdrop, neo-brutalist tiles.
+ * Squircle Shift — morphing squircle background.
  *
- * Each tile rests almost flat, then lifts toward the cursor with a hard black
- * offset shadow and tilts in 3D around the point the cursor sits over — with the
- * cursor to a tile's left, its left edge comes forward and the tile appears to
- * lean right.
+ * A hand-written stand-in for React Bits Pro's component of the same name, which
+ * needs a license key this project does not have. Same idea, built on the CSS
+ * primitive rather than a bundled library:
  *
- * Driven from one pointer listener rather than CSS `:hover`. The hero's headline
- * and buttons sit above this layer, and `:hover` would leave a dead zone wherever
- * text covers a tile; one listener keeps the whole surface responsive.
+ *   `corner-shape: superellipse(k)` controls how square a corner is. k=2 is a
+ *   plain circular round; higher values push toward a squircle and then a square.
+ *   Animating k is what "morphing squircle" means here — the silhouette changes
+ *   without the box ever resizing.
  *
- * Tiles are real DOM nodes because the effect needs per-tile 3D transforms and
- * box shadows, which a canvas cannot express. Cost stays low by writing styles
- * only for tiles inside the cursor's radius — roughly 25 of ~300 per frame — and
- * writing a resting state once as each one settles.
+ * Two motions run at once. An ambient diagonal wave keeps every tile slowly
+ * shifting between near-square and squircle, so the surface is alive before
+ * anyone touches it. On top of that, tiles near the cursor lift with a hard
+ * offset shadow and tilt in 3D toward the pointer, morphing rounder as they rise.
+ *
+ * Browsers without `corner-shape` still get the wave through border-radius, which
+ * is why the radius is animated alongside k rather than instead of it.
  */
 
 import { useEffect, useRef } from "react";
@@ -35,53 +38,52 @@ const MAX_SHADOW_PX = 9;
 const MAX_LIFT_Z = 26;
 const MAX_TILT_DEG = 14;
 
+/** Superellipse exponent: ambient midpoint, wave amplitude, and lifted target. */
+const AMBIENT_K = 4.4;
+const AMBIENT_K_SWING = 0.9;
+const LIFT_K = 1.9;
+
+/** Corner radius, in px, at ambient midpoint and fully lifted. */
+const AMBIENT_RADIUS = 7.5;
+const AMBIENT_RADIUS_SWING = 1.5;
+const LIFT_RADIUS = 15;
+
+/** Ambient wave speed and how much phase each cell adds along the diagonal. */
+const WAVE_SPEED = 0.00055;
+const WAVE_PHASE_PER_CELL = 0.5;
+
 /** Spring constants. Damping under 1 leaves slight overshoot so tiles settle. */
 const STIFFNESS = 0.16;
 const DAMPING = 0.78;
 
-/** Below this a tile counts as resting and stops being written to. */
+/** Below this a tile counts as resting. */
 const REST_EPSILON = 0.002;
 
-/** Resting shadow and border, near-invisible against the white hero. */
 const REST_SHADOW = "2px 2px 0 rgba(10,22,40,0.045)";
 const REST_BORDER = "rgba(10,22,40,0.05)";
 
-/**
- * Squircle shift.
- *
- * `corner-shape: superellipse(k)` sets how square the corners are: k=2 is a plain
- * circular round, and higher k pushes toward a squircle then a square. Tiles rest
- * near-square and morph rounder as they lift, so the corners soften on the way up.
- *
- * Chrome 152 supports this; browsers without it fall back to the border-radius
- * already on the tile, which is why the radius is set unconditionally.
- */
+/** Detected once: writing an unsupported property every frame is wasted work. */
 const SUPPORTS_SQUIRCLE =
   typeof CSS !== "undefined" &&
   typeof CSS.supports === "function" &&
   CSS.supports("corner-shape", "superellipse(2)");
-
-const REST_SUPERELLIPSE = 4.2;
-const LIFT_SUPERELLIPSE = 1.9;
-const REST_RADIUS = 7;
-const LIFT_RADIUS = 15;
 
 interface Tile {
   element: HTMLDivElement;
   /** Centre in layer coordinates, for distance and tilt maths. */
   centreX: number;
   centreY: number;
+  /** Phase offset along the diagonal, so the ambient wave travels. */
+  phase: number;
   /** Current lift, 0..1. */
   lift: number;
   velocity: number;
   /** Smoothed tilt in degrees, so direction changes ease rather than snap. */
   tiltX: number;
   tiltY: number;
-  /** Whether the resting style has already been written. */
-  resting: boolean;
 }
 
-export function GridBackdrop() {
+export function SquircleShift() {
   const hostRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -97,7 +99,7 @@ export function GridBackdrop() {
     let height = 0;
     let frame = 0;
 
-    // Off-layer until the pointer actually arrives, so nothing lifts on load.
+    // Off-layer until the pointer arrives, so nothing lifts on load.
     let pointerX = -9999;
     let pointerY = -9999;
     let pointerInside = false;
@@ -120,7 +122,6 @@ export function GridBackdrop() {
 
       const columns = Math.ceil(width / CELL);
       const rows = Math.ceil(height / CELL);
-
       const fragment = document.createDocumentFragment();
 
       for (let row = 0; row < rows; row += 1) {
@@ -135,10 +136,8 @@ export function GridBackdrop() {
           element.style.cssText =
             `position:absolute;left:${x + INSET}px;top:${y + INSET}px;` +
             `width:${CELL - INSET * 2}px;height:${CELL - INSET * 2}px;` +
-            `border-radius:${REST_RADIUS}px;background:#fff;` +
-            (SUPPORTS_SQUIRCLE
-              ? `corner-shape:superellipse(${REST_SUPERELLIPSE});`
-              : "") +
+            `border-radius:${AMBIENT_RADIUS}px;background:#fff;` +
+            (SUPPORTS_SQUIRCLE ? `corner-shape:superellipse(${AMBIENT_K});` : "") +
             `border:1px solid ${REST_BORDER};box-shadow:${REST_SHADOW};` +
             `transform-style:preserve-3d;will-change:transform,box-shadow;`;
 
@@ -147,11 +146,12 @@ export function GridBackdrop() {
             element,
             centreX: x + CELL / 2,
             centreY: y + CELL / 2,
+            // Diagonal phase makes the wave sweep rather than pulse in unison.
+            phase: (column + row) * WAVE_PHASE_PER_CELL,
             lift: 0,
             velocity: 0,
             tiltX: 0,
             tiltY: 0,
-            resting: true,
           });
         }
       }
@@ -159,23 +159,7 @@ export function GridBackdrop() {
       host!.appendChild(fragment);
     }
 
-    /** Writes the neutral style once, when a tile finishes settling. */
-    function rest(tile: Tile) {
-      tile.element.style.transform = "";
-      tile.element.style.boxShadow = REST_SHADOW;
-      tile.element.style.borderColor = REST_BORDER;
-      tile.element.style.borderRadius = `${REST_RADIUS}px`;
-      if (SUPPORTS_SQUIRCLE) {
-        tile.element.style.setProperty(
-          "corner-shape",
-          `superellipse(${REST_SUPERELLIPSE})`,
-        );
-      }
-      tile.element.style.zIndex = "";
-      tile.resting = true;
-    }
-
-    function render() {
+    function render(time: number) {
       for (const tile of tiles) {
         let target = 0;
         let tiltTargetX = 0;
@@ -191,13 +175,11 @@ export function GridBackdrop() {
             // edge, so the influence circle shows no visible rim.
             target = (Math.cos((distance / INFLUENCE) * Math.PI) + 1) / 2;
 
-            // Tilt away from the cursor. rotateY follows horizontal offset and
-            // rotateX inverts vertical offset, so the edge nearest the cursor
-            // comes forward — cursor on the left tilts the tile to lean right.
+            // Tilt so the edge nearest the cursor comes forward: with the cursor
+            // to a tile's left, the tile leans right.
             const reach = INFLUENCE * 0.75;
-            tiltTargetX =
-              (-dy / reach) * MAX_TILT_DEG * target * -1;
-            tiltTargetY = (dx / reach) * MAX_TILT_DEG * target * -1;
+            tiltTargetX = (dy / reach) * MAX_TILT_DEG * target;
+            tiltTargetY = (-dx / reach) * MAX_TILT_DEG * target;
           }
         }
 
@@ -205,26 +187,40 @@ export function GridBackdrop() {
         tile.velocity = (tile.velocity + displacement * STIFFNESS) * DAMPING;
         tile.lift = Math.min(1, Math.max(0, tile.lift + tile.velocity));
 
-        // Ease the tilt separately so swinging the cursor across a tile does not
-        // flip its lean instantly.
+        // Ease tilt separately so sweeping across a tile does not flip its lean.
         tile.tiltX += (tiltTargetX - tile.tiltX) * 0.18;
         tile.tiltY += (tiltTargetY - tile.tiltY) * 0.18;
 
-        if (tile.lift < REST_EPSILON) {
-          if (!tile.resting) rest(tile);
-          continue;
+        const fade = verticalFade(tile.centreY);
+        const amount = tile.lift * fade;
+
+        // Ambient wave: a slow travelling shift between square and squircle.
+        const wave = Math.sin(time * WAVE_SPEED + tile.phase);
+        const ambientK = AMBIENT_K + wave * AMBIENT_K_SWING;
+        const ambientRadius = AMBIENT_RADIUS + wave * AMBIENT_RADIUS_SWING;
+
+        // Lift pulls the corners rounder, overriding the ambient value.
+        const k = ambientK + (LIFT_K - ambientK) * amount;
+        const radius = ambientRadius + (LIFT_RADIUS - ambientRadius) * amount;
+
+        const style = tile.element.style;
+        style.borderRadius = `${radius.toFixed(2)}px`;
+        if (SUPPORTS_SQUIRCLE) {
+          style.setProperty("corner-shape", `superellipse(${k.toFixed(2)})`);
         }
 
-        const amount = tile.lift * verticalFade(tile.centreY);
-        if (amount <= 0) {
-          if (!tile.resting) rest(tile);
+        if (tile.lift < REST_EPSILON) {
+          // Resting: clear the lift styling but leave the ambient morph running.
+          style.transform = "";
+          style.boxShadow = REST_SHADOW;
+          style.borderColor = REST_BORDER;
+          style.zIndex = "";
           continue;
         }
 
         const shift = amount * MAX_SHIFT_PX;
         const shadow = 2 + amount * MAX_SHADOW_PX;
 
-        const style = tile.element.style;
         // Move up-left and forward in Z, then tilt: the classic hard-shadow lift.
         style.transform =
           `perspective(620px) translate3d(${-shift}px,${-shift}px,${amount * MAX_LIFT_Z}px) ` +
@@ -232,16 +228,7 @@ export function GridBackdrop() {
         style.boxShadow =
           `${shadow.toFixed(1)}px ${shadow.toFixed(1)}px 0 rgba(10,22,40,${(0.055 + amount * 0.5).toFixed(3)})`;
         style.borderColor = `rgba(10,22,40,${(0.05 + amount * 0.55).toFixed(3)})`;
-        // Corners soften as the tile rises: near-square at rest, squircle lifted.
-        style.borderRadius = `${(REST_RADIUS + amount * (LIFT_RADIUS - REST_RADIUS)).toFixed(1)}px`;
-        if (SUPPORTS_SQUIRCLE) {
-          style.setProperty(
-            "corner-shape",
-            `superellipse(${(REST_SUPERELLIPSE + amount * (LIFT_SUPERELLIPSE - REST_SUPERELLIPSE)).toFixed(2)})`,
-          );
-        }
         style.zIndex = String(1 + Math.round(amount * 10));
-        tile.resting = false;
       }
 
       frame = requestAnimationFrame(render);
@@ -274,7 +261,7 @@ export function GridBackdrop() {
     }
 
     // Listen on the window: the headline and buttons sit above this layer, and a
-    // per-tile hover would go dead wherever content covers a tile.
+    // per-tile :hover would go dead wherever content covers a tile.
     window.addEventListener("pointermove", onPointerMove, { passive: true });
     window.addEventListener("pointerleave", onPointerLeave);
     window.addEventListener("blur", onPointerLeave);
