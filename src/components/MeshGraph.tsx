@@ -48,6 +48,7 @@ const ACCENT_VARS: Record<AgentSkill, string> = {
   "orderbook-depth": "var(--accent-depth)",
   sentiment: "var(--accent-sentiment)",
   risk: "var(--accent-risk)",
+  signals: "var(--accent-signals)",
   report: "var(--accent-report)",
 };
 

@@ -1,13 +1,13 @@
 /**
  * The orchestrator.
  *
- * Runs a five-agent pipeline where every hop is a paid HTTP call. It holds the
+ * Runs a six-agent pipeline where every hop is a paid HTTP call. It holds the
  * paying key and settles each invoice as it goes, emitting an event per protocol
  * step so the UI can render the payment flow live.
  *
- * Execution shape: the three market-reading agents are independent and run in
+ * Execution shape: the five market-reading agents are independent and run in
  * parallel; the report agent consumes their output so it runs last. Parallel
- * payment is the interesting property here — three settlements in flight at once
+ * payment is the interesting property here — five settlements in flight at once
  * is what an agent economy actually looks like.
  */
 
@@ -28,10 +28,17 @@ import type {
   ReportResult,
   RiskResult,
   SentimentResult,
+  SignalsResult,
 } from "./analysis";
 
 /** Agents that read the market directly, paid in parallel. */
-const PARALLEL_AGENTS = ["market-data", "orderbook-depth", "sentiment", "risk"] as const;
+const PARALLEL_AGENTS = [
+  "market-data",
+  "orderbook-depth",
+  "sentiment",
+  "risk",
+  "signals",
+] as const;
 
 export const PIPELINE_PLAN: AgentSkill[] = [
   ...PARALLEL_AGENTS,
@@ -150,8 +157,8 @@ export async function runPipeline(
 
   const query = new URLSearchParams({ symbol });
 
-  // Three independent agents, paid concurrently.
-  const [market, depth, sentiment, risk] = await Promise.all([
+  // Five independent agents, paid concurrently.
+  const [market, depth, sentiment, risk, signals] = await Promise.all([
     invokeAgent<MarketDataResult>(
       "market-data",
       `${baseUrl}/api/agents/market-data?${query}`,
@@ -172,6 +179,11 @@ export async function runPipeline(
       `${baseUrl}/api/agents/risk?${query}&notional=${notionalUsd}`,
       options,
     ),
+    invokeAgent<SignalsResult>(
+      "signals",
+      `${baseUrl}/api/agents/signals?${query}&period=1h`,
+      options,
+    ),
   ]);
 
   // The report agent is paid last because it consumes the others' output.
@@ -190,16 +202,16 @@ export async function runPipeline(
           depth: depth?.data,
           sentiment: sentiment?.data,
           risk: risk?.data,
+          signals: signals?.data,
         },
       }),
     },
   );
 
-  const settled = [market, depth, sentiment, risk, report].filter(Boolean);
-  const { AGENTS } = await import("./registry");
+  const settled = [market, depth, sentiment, risk, signals, report].filter(Boolean);
 
   const totalSpentUsd = PIPELINE_PLAN.filter((skill, index) =>
-    Boolean([market, depth, sentiment, risk, report][index]),
+    Boolean([market, depth, sentiment, risk, signals, report][index]),
   ).reduce((sum, skill) => sum + AGENTS[skill].priceUsd, 0);
 
   emit({

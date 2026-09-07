@@ -107,6 +107,8 @@ const en = {
   panelLog: "Protocol log",
   panelLogBody: "Raw x402 events, newest last.",
   panelLogIdle: "Protocol events appear here once a run starts.",
+  logPaused: "Auto-scroll paused while hovering",
+  logJumpLatest: "Jump to latest",
 
   // Agent statuses
   statusIdle: "Idle",
@@ -156,6 +158,34 @@ const en = {
     "AgentMesh · x402 v2 payment mesh on BNB Smart Chain · Binance Agent OS Mini Hackathon",
   footerRight:
     "Demo software. Testnet by default. Not financial advice, and not audited.",
+  // Chart
+  chartTitle: "Live market",
+  chartBody: "The market the report was written against, still moving.",
+  chartLoading: "Loading…",
+  chartLive: "Live",
+  chartPolling: "Polling",
+  chartError: "Unavailable",
+  chartFooter: "1m candles · seeded over REST, streamed over WebSocket.",
+
+  // Signals
+  panelSignals: "Early signal scan",
+  panelSignalsBody: "Open interest, funding and taker flow, graded A to E.",
+  signalGrade: "Grade",
+  signalScore: "Composite score",
+  signalRegime: "Regime",
+  signalComponents: "Components",
+  signalDegraded: "No futures market for this symbol — the grade reflects spot data only.",
+  signalWeight: "weight",
+  signalExcludedNote:
+    "Dimmed components had no data this run and are excluded from the score, which is normalised over the weight actually available.",
+
+  // Report export
+  reportDownload: "Download PDF",
+  reportOpen: "Open in new tab",
+  reportGenerating: "Generating…",
+  pdfLanguageNote:
+    "PDF is issued in English — jsPDF's built-in fonts cannot draw CJK glyphs, and embedding a Chinese font would add megabytes to the bundle. The Chinese headline travels in the document metadata.",
+
   langSwitch: "Switch language",
 } as const;
 
@@ -250,6 +280,8 @@ const zh: Record<keyof typeof en, string> = {
   panelLog: "协议日志",
   panelLogBody: "原始 x402 事件，最新在下。",
   panelLogIdle: "运行开始后，协议事件会出现在这里。",
+  logPaused: "悬停时已暂停自动滚动",
+  logJumpLatest: "跳到最新",
 
   statusIdle: "空闲",
   statusQuoted: "已报价 402",
@@ -294,6 +326,31 @@ const zh: Record<keyof typeof en, string> = {
   footerLeft:
     "AgentMesh · 运行于 BNB Smart Chain 的 x402 v2 支付网络 · Binance Agent OS Mini Hackathon",
   footerRight: "演示软件，默认测试网。不构成投资建议，未经审计。",
+  chartTitle: "实时行情",
+  chartBody: "报告所依据的市场，仍在变动。",
+  chartLoading: "加载中…",
+  chartLive: "实时",
+  chartPolling: "轮询中",
+  chartError: "不可用",
+  chartFooter: "1 分钟 K 线 · REST 初始化，WebSocket 推送。",
+
+  panelSignals: "早期信号扫描",
+  panelSignalsBody: "持仓量、资金费率与主动成交流向，给出 A 至 E 评级。",
+  signalGrade: "评级",
+  signalScore: "综合评分",
+  signalRegime: "市场状态",
+  signalComponents: "分项指标",
+  signalDegraded: "该交易对没有合约市场——评级仅依据现货数据。",
+  signalWeight: "权重",
+  signalExcludedNote:
+    "变暗的分项本次运行没有取到数据，已从评分中排除；总分按实际可用的权重归一化。",
+
+  reportDownload: "下载 PDF",
+  reportOpen: "新标签页打开",
+  reportGenerating: "生成中…",
+  pdfLanguageNote:
+    "PDF 以英文输出——jsPDF 内置字体无法绘制中日韩字形，而嵌入中文字体会让打包体积增加数兆字节。中文标题保存在文档元数据中。",
+
   langSwitch: "切换语言",
 };
 

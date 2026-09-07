@@ -12,7 +12,7 @@ import { useState } from "react";
 import { Loader2, Play, Square } from "lucide-react";
 import { useOrchestration } from "@/hooks/useOrchestration";
 import { AGENT_LIST } from "@/lib/agents/registry";
-import type { ReportResult } from "@/lib/agents/analysis";
+import type { ReportResult, SignalsResult } from "@/lib/agents/analysis";
 import { AgentCard } from "./AgentCard";
 import { BazaarPanel } from "./BazaarPanel";
 import { InteropPanel } from "./InteropPanel";
@@ -20,7 +20,10 @@ import { MeshGraph } from "./MeshGraph";
 import { ProtocolLog } from "./ProtocolLog";
 import { SymbolPicker } from "./SymbolPicker";
 import { useLanguage } from "./LanguageProvider";
+import { ChartPanel } from "./ChartPanel";
 import { OrderPreviewPanel } from "./OrderPreviewPanel";
+import { ReportActions } from "./ReportActions";
+import { SignalsPanel } from "./SignalsPanel";
 import { ReportPanel } from "./ReportPanel";
 import { RunStats } from "./RunStats";
 import { Button } from "./ui/Button";
@@ -38,6 +41,12 @@ export function MeshConsole() {
 
   const running = state.status === "running";
   const report = state.agents.report.data as ReportResult | undefined;
+  const signals = state.agents.signals.data as SignalsResult | undefined;
+
+  // Settlement hashes travel into the PDF so the export carries its own proof.
+  const transactions = Object.values(state.agents)
+    .filter((agent) => agent.transaction)
+    .map((agent) => ({ agent: agent.skill, hash: agent.transaction as string }));
 
   return (
     <div id="console" className="mx-auto w-full max-w-6xl px-6 py-14 sm:py-20">
@@ -116,6 +125,12 @@ export function MeshConsole() {
         </div>
       ) : null}
 
+      {/* Live market, above everything the run produces. */}
+      <Card className="mt-5">
+        <CardHeader title={t("chartTitle")} description={t("chartBody")} />
+        <ChartPanel symbol={symbol} />
+      </Card>
+
       {/* Metrics. */}
       <Card className="mt-5">
         <RunStats state={state} />
@@ -183,12 +198,31 @@ export function MeshConsole() {
         </Card>
       </div>
 
+      {signals ? (
+        <Card className="mt-5">
+          <CardHeader
+            title={t("panelSignals")}
+            description={t("panelSignalsBody")}
+          />
+          <SignalsPanel signals={signals} />
+        </Card>
+      ) : null}
+
       {report ? (
         <div className="mt-5 grid gap-5 lg:grid-cols-2">
           <Card>
             <CardHeader
               title={t("panelReport")}
               description={t("panelReportBody")}
+              action={
+                <ReportActions
+                  symbol={symbol}
+                  report={report}
+                  signals={signals}
+                  order={report.orderPreview}
+                  transactions={transactions}
+                />
+              }
             />
             <ReportPanel report={report} />
           </Card>

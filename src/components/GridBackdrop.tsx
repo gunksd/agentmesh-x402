@@ -46,6 +46,26 @@ const REST_EPSILON = 0.002;
 const REST_SHADOW = "2px 2px 0 rgba(10,22,40,0.045)";
 const REST_BORDER = "rgba(10,22,40,0.05)";
 
+/**
+ * Squircle shift.
+ *
+ * `corner-shape: superellipse(k)` sets how square the corners are: k=2 is a plain
+ * circular round, and higher k pushes toward a squircle then a square. Tiles rest
+ * near-square and morph rounder as they lift, so the corners soften on the way up.
+ *
+ * Chrome 152 supports this; browsers without it fall back to the border-radius
+ * already on the tile, which is why the radius is set unconditionally.
+ */
+const SUPPORTS_SQUIRCLE =
+  typeof CSS !== "undefined" &&
+  typeof CSS.supports === "function" &&
+  CSS.supports("corner-shape", "superellipse(2)");
+
+const REST_SUPERELLIPSE = 4.2;
+const LIFT_SUPERELLIPSE = 1.9;
+const REST_RADIUS = 7;
+const LIFT_RADIUS = 15;
+
 interface Tile {
   element: HTMLDivElement;
   /** Centre in layer coordinates, for distance and tilt maths. */
@@ -115,7 +135,10 @@ export function GridBackdrop() {
           element.style.cssText =
             `position:absolute;left:${x + INSET}px;top:${y + INSET}px;` +
             `width:${CELL - INSET * 2}px;height:${CELL - INSET * 2}px;` +
-            `border-radius:7px;background:#fff;` +
+            `border-radius:${REST_RADIUS}px;background:#fff;` +
+            (SUPPORTS_SQUIRCLE
+              ? `corner-shape:superellipse(${REST_SUPERELLIPSE});`
+              : "") +
             `border:1px solid ${REST_BORDER};box-shadow:${REST_SHADOW};` +
             `transform-style:preserve-3d;will-change:transform,box-shadow;`;
 
@@ -141,6 +164,13 @@ export function GridBackdrop() {
       tile.element.style.transform = "";
       tile.element.style.boxShadow = REST_SHADOW;
       tile.element.style.borderColor = REST_BORDER;
+      tile.element.style.borderRadius = `${REST_RADIUS}px`;
+      if (SUPPORTS_SQUIRCLE) {
+        tile.element.style.setProperty(
+          "corner-shape",
+          `superellipse(${REST_SUPERELLIPSE})`,
+        );
+      }
       tile.element.style.zIndex = "";
       tile.resting = true;
     }
@@ -202,6 +232,14 @@ export function GridBackdrop() {
         style.boxShadow =
           `${shadow.toFixed(1)}px ${shadow.toFixed(1)}px 0 rgba(10,22,40,${(0.055 + amount * 0.5).toFixed(3)})`;
         style.borderColor = `rgba(10,22,40,${(0.05 + amount * 0.55).toFixed(3)})`;
+        // Corners soften as the tile rises: near-square at rest, squircle lifted.
+        style.borderRadius = `${(REST_RADIUS + amount * (LIFT_RADIUS - REST_RADIUS)).toFixed(1)}px`;
+        if (SUPPORTS_SQUIRCLE) {
+          style.setProperty(
+            "corner-shape",
+            `superellipse(${(REST_SUPERELLIPSE + amount * (LIFT_SUPERELLIPSE - REST_SUPERELLIPSE)).toFixed(2)})`,
+          );
+        }
         style.zIndex = String(1 + Math.round(amount * 10));
         tile.resting = false;
       }

@@ -8,7 +8,8 @@
  * settle sequence happening per agent rather than taking the graph's word for it.
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowDown } from "lucide-react";
 import type { OrchestrationEvent } from "@/lib/agents/events";
 import { useLanguage } from "./LanguageProvider";
 import { AGENT_COPY, pick } from "@/lib/i18n/content";
@@ -107,10 +108,47 @@ export function ProtocolLog({
 }) {
   const { t, lang } = useLanguage();
   const endRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Follow the tail as events stream in.
+  const [hovered, setHovered] = useState(false);
+  const [scrollable, setScrollable] = useState(false);
+  const [atBottom, setAtBottom] = useState(true);
+
+  /**
+   * Auto-follow the tail, but stop while the pointer is over the log.
+   *
+   * Without this the panel yanks itself back to the bottom mid-read, which is the
+   * behaviour that felt broken: the list scrolls out from under the cursor with no
+   * indication that it is doing so deliberately.
+   */
   useEffect(() => {
+    if (hovered) return;
     endRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+  }, [events.length, hovered]);
+
+  /** Track whether there is anything to scroll, and whether we are at the end. */
+  useEffect(() => {
+    const element = scrollRef.current;
+    if (!element) return;
+
+    const measure = () => {
+      const overflowing = element.scrollHeight > element.clientHeight + 4;
+      setScrollable(overflowing);
+      setAtBottom(
+        element.scrollHeight - element.scrollTop - element.clientHeight < 24,
+      );
+    };
+
+    measure();
+    element.addEventListener("scroll", measure, { passive: true });
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+
+    return () => {
+      element.removeEventListener("scroll", measure);
+      observer.disconnect();
+    };
   }, [events.length]);
 
   if (events.length === 0) {
@@ -128,19 +166,27 @@ export function ProtocolLog({
   }
 
   return (
-    // Fills the card instead of capping at a fixed height. The card sits in a
-    // grid row alongside the taller Agents card, so a max-height here left dead
-    // space below the scroll area — min-h-0 lets this flex child actually shrink
-    // so overflow-y-auto scrolls the full available region.
+    // Wrapper is relative so the hover affordances can be positioned over the
+    // scroll area without joining its scroll flow.
     <div
-      className={cn(
-        "min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4",
-        className,
-      )}
-      role="log"
-      aria-live="polite"
+      className={cn("relative min-h-0 flex-1", className)}
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
     >
-      <ol className="space-y-1.5">
+      {/*
+        Fills the card instead of capping at a fixed height. The card sits in a
+        grid row alongside the taller Agents card, so a max-height here left dead
+        space below the scroll area — min-h-0 lets this flex child actually shrink
+        so overflow-y-auto scrolls the full available region.
+      */}
+      <div
+        ref={scrollRef}
+        className="h-full overflow-y-auto overscroll-contain px-5 py-4"
+        role="log"
+        aria-live="polite"
+        tabIndex={0}
+      >
+        <ol className="space-y-1.5">
         {events.map((event, index) => {
           const line = describe(event, lang);
           if (!line) return null;
@@ -164,8 +210,45 @@ export function ProtocolLog({
             </li>
           );
         })}
-      </ol>
-      <div ref={endRef} />
+        </ol>
+        <div ref={endRef} />
+      </div>
+
+      {/* Fade at the top edge, so clipped lines read as scrollable rather than cut. */}
+      {scrollable ? (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-6 bg-gradient-to-b from-[var(--surface-raised)] to-transparent"
+        />
+      ) : null}
+
+      {/*
+        Hovering pauses auto-follow, so say so. Without this the list either yanks
+        itself back to the bottom under the cursor, or silently stops following and
+        looks frozen — both read as broken.
+      */}
+      {scrollable && hovered ? (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 border-t border-[var(--border)] bg-[var(--surface-raised)]/95 px-5 py-1.5 backdrop-blur-sm">
+          <span className="text-[10px] text-[var(--subtle)]">
+            {t("logPaused")}
+          </span>
+          {!atBottom ? (
+            <button
+              type="button"
+              onClick={() =>
+                endRef.current?.scrollIntoView({
+                  block: "end",
+                  behavior: "smooth",
+                })
+              }
+              className="pointer-events-auto inline-flex items-center gap-1 rounded-md border border-[var(--border-strong)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--muted)] transition-colors hover:text-[var(--foreground)]"
+            >
+              <ArrowDown aria-hidden className="size-2.5" />
+              {t("logJumpLatest")}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

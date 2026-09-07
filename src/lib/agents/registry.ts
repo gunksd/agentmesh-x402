@@ -16,6 +16,7 @@ export type AgentSkill =
   | "orderbook-depth"
   | "sentiment"
   | "risk"
+  | "signals"
   | "report";
 
 export interface AgentDefinition {
@@ -28,7 +29,7 @@ export interface AgentDefinition {
   /** Whether this agent fetches live Binance market data to do its work. */
   readsLiveMarket: boolean;
   /** Shown in the node graph. */
-  accent: "market" | "depth" | "sentiment" | "risk" | "report";
+  accent: "market" | "depth" | "sentiment" | "risk" | "signals" | "report";
   /** Inputs the agent accepts, surfaced in the Bazaar listing schema. */
   inputs: Record<string, string>;
 }
@@ -75,6 +76,18 @@ export const AGENTS: Record<AgentSkill, AgentDefinition> = {
     readsLiveMarket: true,
     accent: "risk",
     inputs: { symbol: "Trading pair", notional: "Position size in USD" },
+  },
+  signals: {
+    skill: "signals",
+    // Priced highest of the market readers: it is the only one calling the
+    // futures API, and open interest is the input the others cannot see.
+    name: "Signal Scanner Agent",
+    description:
+      "Open interest anomalies, funding skew and taker pressure, graded A to E.",
+    priceUsd: 0.03,
+    readsLiveMarket: true,
+    accent: "signals",
+    inputs: { symbol: "Trading pair", period: "Aggregation window" },
   },
   report: {
     skill: "report",

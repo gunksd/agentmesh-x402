@@ -11,6 +11,13 @@ import { realisedVolatility, type OrderBook } from "./market";
 import type { NoOrderReason, OrderPreview } from "./order";
 import type { LocalisedText } from "@/lib/i18n/types";
 import {
+  fetchFunding,
+  fetchOpenInterestHistory,
+  fetchTakerRatio,
+  fetchTopTraderRatio,
+} from "./futures";
+import { scoreSignals, type Regime, type SignalReport } from "./signals";
+import {
   fetchKlines,
   fetchOrderBook,
   fetchTicker,
@@ -301,6 +308,61 @@ export async function analyseRisk(
   };
 }
 
+export interface SignalsResult extends SignalReport {
+  symbol: string;
+  period: string;
+  /** Latest open interest notional, for display. */
+  openInterestUsd?: number;
+  /** Series for the sparkline, oldest first. */
+  openInterestSeries: { timestamp: number; value: number }[];
+}
+
+/**
+ * Runs the early-signal scan.
+ *
+ * Every futures call is wrapped so a symbol without a futures market degrades to
+ * a graded-but-thin report rather than failing the agent. Plenty of Alpha pairs
+ * are spot-only, and a scanner that 500s on those is useless for the long tail
+ * where early signals actually matter.
+ */
+export async function analyseSignals(
+  symbol: string,
+  period = "1h",
+): Promise<SignalsResult> {
+  const [openInterest, funding, takerRatio, topTraderRatio, klines] =
+    await Promise.all([
+      fetchOpenInterestHistory(symbol, period, 48).catch(() => []),
+      fetchFunding(symbol).catch(() => null),
+      fetchTakerRatio(symbol, period, 24).catch(() => []),
+      fetchTopTraderRatio(symbol, period, 24).catch(() => []),
+      fetchKlines(symbol, "1h", 48).catch(() => ({ data: [], source: "rest" as const })),
+    ]);
+
+  const ticker = await fetchTicker(symbol).catch(() => null);
+  const changePercent24h = ticker ? Number(ticker.data.priceChangePercent) : 0;
+
+  const report = scoreSignals({
+    symbol,
+    changePercent24h,
+    openInterest,
+    fundingRate: funding?.lastFundingRate,
+    takerRatio,
+    topTraderRatio,
+    annualisedVolatility: realisedVolatility(klines.data),
+  });
+
+  return {
+    ...report,
+    symbol,
+    period,
+    openInterestUsd: openInterest.at(-1)?.notionalUsd,
+    openInterestSeries: openInterest.map((point) => ({
+      timestamp: point.timestamp,
+      value: point.openInterest,
+    })),
+  };
+}
+
 export interface ReportResult {
   symbol: string;
   direction: Direction;
@@ -329,6 +391,29 @@ export interface ReportInput {
   depth?: DepthResult;
   sentiment?: SentimentResult;
   risk?: RiskResult;
+  signals?: SignalsResult;
+}
+
+/**
+ * Direction implied by a market regime.
+ *
+ * Build-ups point with the flow because fresh positioning tends to continue.
+ * Squeezes and unwinds point against it: both are closing activity, and once the
+ * forced participants are done there is nobody left to push.
+ */
+function regimeBias(regime: Regime): number {
+  switch (regime) {
+    case "long-buildup":
+      return 1;
+    case "short-buildup":
+      return -1;
+    case "short-squeeze":
+      return -0.45;
+    case "long-unwind":
+      return 0.45;
+    default:
+      return 0;
+  }
 }
 
 /**
@@ -344,14 +429,22 @@ export function composeReport(
   const signals: { weight: number; value: number }[] = [];
 
   if (input.sentiment) {
-    signals.push({ weight: 0.3, value: input.sentiment.score });
+    signals.push({ weight: 0.22, value: input.sentiment.score });
+  }
+  // Open interest carries the most weight: it is the only input describing
+  // whether money is entering or leaving, which the other agents cannot see.
+  if (input.signals && !input.signals.degraded) {
+    signals.push({
+      weight: 0.3,
+      value: regimeBias(input.signals.regime) * (input.signals.score / 100),
+    });
   }
   if (input.depth) {
-    signals.push({ weight: 0.4, value: input.depth.imbalance });
+    signals.push({ weight: 0.3, value: input.depth.imbalance });
   }
   if (input.market) {
     signals.push({
-      weight: 0.3,
+      weight: 0.18,
       value: Math.max(-1, Math.min(1, input.market.changePercent24h / 5)),
     });
   }

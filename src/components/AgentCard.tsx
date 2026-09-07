@@ -21,6 +21,7 @@ const ACCENT_CLASSES: Record<AgentSkill, string> = {
   "orderbook-depth": "bg-[var(--accent-depth)]",
   sentiment: "bg-[var(--accent-sentiment)]",
   risk: "bg-[var(--accent-risk)]",
+  signals: "bg-[var(--accent-signals)]",
   report: "bg-[var(--accent-report)]",
 };
 

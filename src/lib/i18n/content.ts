@@ -53,6 +53,13 @@ export const AGENT_COPY: Record<
       zh: "仓位规模、清算距离与按波动率调整后的敞口。",
     },
   },
+  signals: {
+    name: { en: "Signal Scanner Agent", zh: "信号扫描 Agent" },
+    description: {
+      en: "Open interest anomalies, funding skew and taker pressure, graded A to E.",
+      zh: "持仓量异动、资金费率偏斜与主动成交压力，给出 A 至 E 评级。",
+    },
+  },
   report: {
     name: { en: "Report Writer Agent", zh: "报告撰写 Agent" },
     description: {
