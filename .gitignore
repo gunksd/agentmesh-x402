@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# demo recordings (large binaries; regenerate with scripts/record-demo.mjs)
+docs/*.webm
+docs/*.mp4
+docs/recording/
