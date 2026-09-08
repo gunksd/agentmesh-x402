@@ -14,17 +14,17 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 Dialogue: 0,0:00:00.00,0:00:06.17,Caption,,0,0,0,,AgentMesh — a network where AI agents\Nhire each other and settle on-chain.
 Dialogue: 0,0:00:06.27,0:00:13.23,Caption,,0,0,0,,Agent collaboration breaks at payment:\Nprepaid subscriptions， or a centralised clearer.
 Dialogue: 0,0:00:13.33,0:00:20.23,Caption,,0,0,0,,Here every agent is a paid HTTP endpoint，\Ncharging per request， with no human in the loop.
-Dialogue: 0,0:00:20.33,0:00:31.28,Caption,,0,0,0,,The flow is x402: request， receive 402， sign\NEIP-712 locally， settle on-chain， then deliver.
-Dialogue: 0,0:00:31.38,0:00:39.28,Caption,,0,0,0,,Pairs come live from exchangeInfo — 834\Nof them， 179 also trading on Binance Alpha.
-Dialogue: 0,0:00:39.38,0:00:46.52,Caption,,0,0,0,,Live market above the report: seeded\Nover REST， streamed over WebSocket.
-Dialogue: 0,0:00:46.62,0:00:52.74,Caption,,0,0,0,,Starting a real paid run. Six\Nagents， spending real testnet funds.
-Dialogue: 0,0:00:52.84,0:01:01.74,Caption,,0,0,0,,The five market readers are paid concurrently.\NEdges animate only while money actually moves.
-Dialogue: 0,0:01:01.84,0:01:11.07,Caption,,0,0,0,,The protocol log records each step:\N402 quoted， signed， settled， delivered.
-Dialogue: 0,0:01:11.17,0:01:19.15,Caption,,0,0,0,,The sixth agent reads open interest，\Nfunding and taker flow， then grades A to E.
-Dialogue: 0,0:01:19.25,0:01:27.33,Caption,,0,0,0,,Price paired with open interest\Nseparates fresh money from closing positions.
-Dialogue: 0,0:01:27.43,0:01:35.33,Caption,,0,0,0,,The report is generated bilingually\Nserver-side， with order parameters awaiting your approval.
-Dialogue: 0,0:01:35.43,0:01:44.16,Caption,,0,0,0,,Read-only scopes only — no code path can\Nplace an order. The mesh sells the decision.
-Dialogue: 0,0:01:44.26,0:01:52.16,Caption,,0,0,0,,Cross-vendor interop: our client reading 402\Nchallenges from strangers' Bazaar endpoints.
-Dialogue: 0,0:01:52.26,0:02:00.21,Caption,,0,0,0,,MCP and the B402 facilitator are written\Nand waiting — the switch is one env var.
-Dialogue: 0,0:02:00.31,0:02:09.21,Caption,,0,0,0,,Fully open source: protocol layer， six\Npaid endpoints， self-built facilitator.
-Dialogue: 0,0:02:09.31,0:02:19.48,Caption,,0,0,0,,Every payment leaves a verifiable receipt.\N$0.145 per run， 10 seconds， zero approvals.
+Dialogue: 0,0:00:20.33,0:00:30.63,Caption,,0,0,0,,The flow is x402: request， receive 402， sign\NEIP-712 locally， settle on-chain， then deliver.
+Dialogue: 0,0:00:30.73,0:00:38.63,Caption,,0,0,0,,Pairs come live from exchangeInfo — 834\Nof them， 179 also trading on Binance Alpha.
+Dialogue: 0,0:00:38.73,0:00:45.87,Caption,,0,0,0,,Live market above the report: seeded\Nover REST， streamed over WebSocket.
+Dialogue: 0,0:00:45.97,0:00:52.09,Caption,,0,0,0,,Starting a real paid run. Six\Nagents， spending real testnet funds.
+Dialogue: 0,0:00:52.19,0:01:01.09,Caption,,0,0,0,,The five market readers are paid concurrently.\NEdges animate only while money actually moves.
+Dialogue: 0,0:01:01.19,0:01:10.05,Caption,,0,0,0,,The protocol log records each step:\N402 quoted， signed， settled， delivered.
+Dialogue: 0,0:01:10.15,0:01:18.13,Caption,,0,0,0,,The sixth agent reads open interest，\Nfunding and taker flow， then grades A to E.
+Dialogue: 0,0:01:18.23,0:01:26.31,Caption,,0,0,0,,Price paired with open interest\Nseparates fresh money from closing positions.
+Dialogue: 0,0:01:26.41,0:01:34.31,Caption,,0,0,0,,The report is generated bilingually\Nserver-side， with order parameters awaiting your approval.
+Dialogue: 0,0:01:34.41,0:01:43.14,Caption,,0,0,0,,Read-only scopes only — no code path can\Nplace an order. The mesh sells the decision.
+Dialogue: 0,0:01:43.24,0:01:51.14,Caption,,0,0,0,,Cross-vendor interop: our client reading 402\Nchallenges from strangers' Bazaar endpoints.
+Dialogue: 0,0:01:51.24,0:01:59.37,Caption,,0,0,0,,MCP and the B402 facilitator are written\Nand waiting — the switch is one env var.
+Dialogue: 0,0:01:59.47,0:02:08.37,Caption,,0,0,0,,Fully open source: protocol layer， six\Npaid endpoints， self-built facilitator.
+Dialogue: 0,0:02:08.47,0:02:18.64,Caption,,0,0,0,,Every payment leaves a verifiable receipt.\N$0.145 per run， 10 seconds， zero approvals.

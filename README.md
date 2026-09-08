@@ -24,6 +24,7 @@ request — no subscriptions, no invoices, no human in the loop.
 [![i18n](https://img.shields.io/badge/i18n-EN%20%2F%20%E4%B8%AD%E6%96%87-0B63F6?style=flat-square)](#bilingual-throughout)
 [![License](https://img.shields.io/badge/license-MIT-8A99B3?style=flat-square)](LICENSE)
 
+[中文](README.zh-CN.md) ·
 [Live demo](https://agentmesh-x402.vercel.app) ·
 [What's novel](#whats-novel-here) ·
 [How it works](#how-a-payment-happens) ·

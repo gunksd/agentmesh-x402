@@ -341,21 +341,23 @@ await segment("code", async () => {
 });
 
 // ---- On-chain proof ----
+//
+// Stays on the README rather than navigating to BscScan. The explorer answers
+// HTTP 403 behind a Cloudflare bot challenge, and working around that is not
+// something to ship in a submission. The README's settlement table carries all
+// six hashes as live links, so the claim stays checkable by anyone watching.
 await segment("proof", async () => {
-  // A settlement from the README, so the shot works even if this run's hashes
-  // were not scraped off the page.
-  const tx =
-    "0x974b4d826eefa41d2b06c66a194e3a8f23da35d737d2fad205b184c25c1ce6fc";
-  await page.goto(`https://testnet.bscscan.com/tx/${tx}`, {
-    waitUntil: "domcontentloaded",
-    timeout: 45_000,
-  });
-  const proof = captions.get("proof");
-  await page
-    .evaluate(({ zh, en }) => window.__setCaption?.(zh, en), { zh: proof.zh, en: proof.en })
-    .catch(() => {});
-  await wait(3000);
-  await page.evaluate(() => window.scrollBy({ top: 320, behavior: "smooth" }));
+  const table = page.locator('text=/What actually runs/').first();
+  if ((await table.count()) > 0) {
+    await table.evaluate((element) =>
+      element.scrollIntoView({ behavior: "smooth", block: "start" }),
+    );
+  }
+  await wait(2400);
+  // Ease down the hash rows so each settlement is legible on screen.
+  await page.evaluate(() => window.scrollBy({ top: 340, behavior: "smooth" }));
+  await wait(2600);
+  await page.evaluate(() => window.scrollBy({ top: 300, behavior: "smooth" }));
 });
 
 // Tail padding, so the video is never shorter than the audio track.
