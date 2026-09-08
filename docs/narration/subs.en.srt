@@ -1,0 +1,84 @@
+1
+00:00:00,000 --> 00:00:06,625
+AgentMesh — a network where AI agents
+hire each other and settle on-chain.
+
+2
+00:00:06,705 --> 00:00:14,084
+Agent collaboration breaks at payment:
+prepaid subscriptions, or a centralised clearer.
+
+3
+00:00:14,164 --> 00:00:23,410
+Here every agent is a paid HTTP endpoint,
+charging per request, with no human in the loop.
+
+4
+00:00:23,490 --> 00:00:36,247
+The flow is x402: request, receive 402, sign
+EIP-712 locally, settle on-chain, then deliver.
+
+5
+00:00:36,327 --> 00:00:45,568
+Pairs come live from exchangeInfo — 834
+of them, 179 also trading on Binance Alpha.
+
+6
+00:00:45,648 --> 00:00:53,107
+Live market above the report: seeded
+over REST, streamed over WebSocket.
+
+7
+00:00:53,187 --> 00:00:59,488
+Starting a real paid run. Six
+agents, spending real testnet funds.
+
+8
+00:00:59,568 --> 00:01:08,820
+The five market readers are paid concurrently.
+Edges animate only while money actually moves.
+
+9
+00:01:08,900 --> 00:01:18,347
+The protocol log records each step:
+402 quoted, signed, settled, delivered.
+
+10
+00:01:18,427 --> 00:01:26,739
+The sixth agent reads open interest,
+funding and taker flow, then grades A to E.
+
+11
+00:01:26,819 --> 00:01:35,874
+Price paired with open interest
+separates fresh money from closing positions.
+
+12
+00:01:35,954 --> 00:01:44,109
+The report is generated bilingually
+server-side, with order parameters awaiting your approval.
+
+13
+00:01:44,189 --> 00:01:53,671
+Read-only scopes only — no code path can
+place an order. The mesh sells the decision.
+
+14
+00:01:53,751 --> 00:02:02,893
+Cross-vendor interop: our client reading 402
+challenges from strangers' Bazaar endpoints.
+
+15
+00:02:02,973 --> 00:02:13,777
+MCP and the B402 facilitator are written
+and waiting — the switch is one env var.
+
+16
+00:02:13,857 --> 00:02:24,014
+Fully open source: protocol layer, six
+paid endpoints, self-built facilitator.
+
+17
+00:02:24,094 --> 00:02:36,039
+Every payment leaves a verifiable receipt.
+$0.145 per run, 10 seconds, zero approvals.

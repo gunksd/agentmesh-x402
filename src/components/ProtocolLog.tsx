@@ -107,7 +107,6 @@ export function ProtocolLog({
   className?: string;
 }) {
   const { t, lang } = useLanguage();
-  const endRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const [hovered, setHovered] = useState(false);
@@ -115,16 +114,26 @@ export function ProtocolLog({
   const [atBottom, setAtBottom] = useState(true);
 
   /**
-   * Auto-follow the tail, but stop while the pointer is over the log.
+   * Auto-follow the tail.
    *
-   * Without this the panel yanks itself back to the bottom mid-read, which is the
-   * behaviour that felt broken: the list scrolls out from under the cursor with no
-   * indication that it is doing so deliberately.
+   * Sets scrollTop on the container rather than calling scrollIntoView on a
+   * sentinel. scrollIntoView walks up and scrolls *every* scrollable ancestor
+   * including the document, so each new event was yanking the whole window back
+   * to this panel — reading the report further down the page was impossible while
+   * a run was still emitting events.
+   *
+   * Auto-follow also pauses while the pointer is over the log, and once the reader
+   * has scrolled up: silently dragging someone back to the bottom is the same bug
+   * in a smaller form.
    */
   useEffect(() => {
-    if (hovered) return;
-    endRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
-  }, [events.length, hovered]);
+    if (hovered || !atBottom) return;
+
+    const element = scrollRef.current;
+    if (!element) return;
+
+    element.scrollTo({ top: element.scrollHeight, behavior: "smooth" });
+  }, [events.length, hovered, atBottom]);
 
   /** Track whether there is anything to scroll, and whether we are at the end. */
   useEffect(() => {
@@ -211,7 +220,6 @@ export function ProtocolLog({
           );
         })}
         </ol>
-        <div ref={endRef} />
       </div>
 
       {/* Fade at the top edge, so clipped lines read as scrollable rather than cut. */}
@@ -235,12 +243,15 @@ export function ProtocolLog({
           {!atBottom ? (
             <button
               type="button"
-              onClick={() =>
-                endRef.current?.scrollIntoView({
-                  block: "end",
+              onClick={() => {
+                const element = scrollRef.current;
+                // Same reason as the auto-follow above: keep the scroll inside
+                // this container instead of moving the page.
+                element?.scrollTo({
+                  top: element.scrollHeight,
                   behavior: "smooth",
-                })
-              }
+                });
+              }}
               className="pointer-events-auto inline-flex items-center gap-1 rounded-md border border-[var(--border-strong)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--muted)] transition-colors hover:text-[var(--foreground)]"
             >
               <ArrowDown aria-hidden className="size-2.5" />

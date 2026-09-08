@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>AgentMesh · 项目介绍</title>
+<link rel="stylesheet" href="deck.css">
+</head>
+<body>
+
+<!-- ============ 01 封面 ============ -->
+<section class="slide">
+  <div class="gridbg"></div>
+  <div class="accent"></div>
+
+  <div class="eyebrow"><strong>AgentMesh</strong><span>Binance Agent OS Mini Hackathon</span></div>
+
+  <div class="grow col center">
+    <div class="badge">基于 Binance Agent OS 构建</div>
+    <h1 class="mt-40">让 Agent 互相雇佣<br><span style="color:var(--brand)">并在链上自动结账</span></h1>
+    <p class="lead mt-40">
+      一个专业 AI Agent 通过 HTTP 出售能力的网络。按次收费，链上结算，全程无需人工介入。
+    </p>
+  </div>
+
+  <div class="metrics mt-auto">
+    <div>
+      <div class="metric__label">单次运行成本</div>
+      <div class="metric__value metric__value--brand">$0.145</div>
+    </div>
+    <div>
+      <div class="metric__label">耗时</div>
+      <div class="metric__value">9.8s</div>
+    </div>
+    <div>
+      <div class="metric__label">付费 Agent</div>
+      <div class="metric__value">6</div>
+    </div>
+    <div>
+      <div class="metric__label">人工确认</div>
+      <div class="metric__value metric__value--success">0</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 02 问题 ============ -->
+<section class="slide">
+  <div class="eyebrow"><strong>问题</strong><span>02</span></div>
+
+  <div class="grow col center">
+    <h2>Agent 协作的断点，在付费</h2>
+    <p class="lead mt-40">
+      今天两个 AI Agent 想互相调用能力，只有两条路可走。两条都不成立。
+    </p>
+
+    <div class="row mt-72">
+      <div class="card card--tint" style="flex:1">
+        <div class="badge badge--danger">路径一</div>
+        <h3 class="mt-24">人工预先充值订阅</h3>
+        <p>
+          需要人提前开户、充值、配置 API key。Agent 无法自主发现并使用一个它此前不知道的服务——
+          清单必须由人预先写好。
+        </p>
+      </div>
+      <div class="card card--tint" style="flex:1">
+        <div class="badge badge--danger">路径二</div>
+        <h3 class="mt-24">走中心化结算方</h3>
+        <p>
+          引入一个必须被双方信任的中间人，它掌握资金、可以审查交易、并对每一笔抽成。
+          这与 Agent 自主协作的前提相冲突。
+        </p>
+      </div>
+    </div>
+
+    <p class="quote quote--brand mt-72">
+      缺的不是算力，也不是模型能力，是一条 Agent 之间可以直接走通的支付通道。
+    </p>
+  </div>
+</section>
+
+<!-- ============ 03 方案 ============ -->
+<section class="slide">
+  <div class="eyebrow"><strong>方案</strong><span>03</span></div>
+
+  <div class="grow col center">
+    <h2>每个 Agent 都是一个付费 HTTP 端点</h2>
+    <p class="lead mt-40">
+      编排方需要某项能力时直接发 HTTP 请求。对方返回
+      <span class="mono" style="color:var(--ink)">402 Payment Required</span>，
+      编排方本地签名授权，几秒内链上结清，然后拿到数据。
+    </p>
+
+    <div class="row mt-72">
+      <div class="card" style="flex:1">
+        <h3>自主发现</h3>
+        <p>从币安 B402 Bazaar 公开目录检索可付费端点。无需 API key，无需预配置清单。</p>
+      </div>
+      <div class="card" style="flex:1">
+        <h3>离线签名</h3>
+        <p>EIP-712 本地签名，无 RPC 调用、无需 Gas、无钱包弹窗，耗时几毫秒。</p>
+      </div>
+      <div class="card" style="flex:1">
+        <h3>链上结清</h3>
+        <p>BNB Smart Chain 上真实转账，Gas 由 facilitator 代付，收据任何人可核验。</p>
+      </div>
+    </div>
+
+    <p class="lead mt-56">
+      没有中间人持有资金，没有订阅，没有人工审批。
+    </p>
+  </div>
+</section>
+
+<!-- ============ 04 协议流程 ============ -->
+<section class="slide">
+  <div class="eyebrow"><strong>协议</strong><span>04 · x402 v2</span></div>
+
+  <h2 class="mt-24">一笔支付如何发生</h2>
+  <p class="lead mt-24">五个步骤，没有一步需要人。</p>
+
+  <div class="steps mt-56">
+    <div class="step">
+      <div class="step__n">01</div>
+      <h3>发现</h3>
+      <p>查询 B402 Bazaar 公开目录，找到接受 x402 付款的端点。</p>
+    </div>
+    <div class="step">
+      <div class="step__n">02</div>
+      <h3>报价</h3>
+      <p>请求资源，收到 402，其中携带金额、代币、网络与 Permit2 spender 地址。</p>
+    </div>
+    <div class="step">
+      <div class="step__n">03</div>
+      <h3>签名</h3>
+      <p>本地签署 EIP-712 Permit2 授权，纯密码学运算，不接触链。</p>
+    </div>
+    <div class="step">
+      <div class="step__n">04</div>
+      <h3>验证与结算</h3>
+      <p>Facilitator 先离链校验签名，再提交转账并自行承担 Gas。</p>
+    </div>
+    <div class="step">
+      <div class="step__n">05</div>
+      <h3>交付</h3>
+      <p>结算确认后释放数据，返回交易哈希供任何人核验。</p>
+    </div>
+  </div>
+
+  <div class="card card--brand mt-56">
+    <h3>为什么先验证再结算</h3>
+    <p>
+      校验签名是免费的，能在花掉 Gas 之前挡掉无效授权；而结算是不可逆的一步。
+      顺序反了会持续为坏签名付费。
+    </p>
+  </div>
+</section>
+
+<!-- ============ 05 六个 Agent ============ -->
+<section class="slide">
+  <div class="eyebrow"><strong>网络构成</strong><span>05</span></div>
+
+  <h2 class="mt-24">六个 Agent，各卖一项能力</h2>
+  <p class="lead mt-24">
+    前五个读取市场，<strong style="color:var(--ink)">并行付费</strong>；报告 Agent 消费它们的产出，最后执行。
+  </p>
+
+  <table class="mt-56">
+    <tr>
+      <th style="width:280px">Agent</th>
+      <th>能力</th>
+      <th style="width:180px">单价</th>
+    </tr>
+    <tr><td><strong>行情数据</strong></td><td>实时价格、24 小时区间、成交量</td><td class="num">$0.010</td></tr>
+    <tr><td><strong>盘口深度</strong></td><td>买卖失衡、流动性墙、滑点估算</td><td class="num">$0.020</td></tr>
+    <tr><td><strong>动量</strong></td><td>24 小时涨跌、区间位置、量能趋势</td><td class="num">$0.015</td></tr>
+    <tr><td><strong>风险</strong></td><td>已实现波动率、95% VaR、杠杆上限</td><td class="num">$0.020</td></tr>
+    <tr>
+      <td><strong style="color:var(--brand)">信号扫描</strong></td>
+      <td>合约持仓量异动、资金费率、主动成交流向 → A–E 评级</td>
+      <td class="num" style="color:var(--brand)">$0.030</td>
+    </tr>
+    <tr><td><strong>报告撰写</strong></td><td>汇总研判、方向判断、下单参数</td><td class="num">$0.050</td></tr>
+  </table>
+
+  <p class="lead mt-40">
+    合计 <span class="mono" style="color:var(--brand)">$0.145</span> 一次完整运行。
+  </p>
+</section>
+
+<!-- ============ 06 创新点 1 ============ -->
+<section class="slide">
+  <div class="eyebrow"><strong>创新点 1 / 5</strong><span>06</span></div>
+
+  <div class="grow col center">
+    <div class="badge">架构决定</div>
+    <h2 class="mt-24">可切换的 Facilitator</h2>
+    <p class="lead mt-40">
+      B402 的 verify / settle 接口需要商户上线流程：签发 clientId、注册 RSA 公钥、源 IP 白名单。
+      黑客松周期内走不完。
+    </p>
+
+    <div class="row mt-56">
+      <div class="card" style="flex:1">
+        <div class="badge badge--success">今天在跑</div>
+        <h3 class="mt-24"><span class="mono">self</span></h3>
+        <p>本地校验签名，直接调用 Permit2，relayer 代付 Gas。演示里的每一笔结算都出自这条路径。</p>
+      </div>
+      <div class="card" style="flex:1">
+        <div class="badge">代码已就绪</div>
+        <h3 class="mt-24"><span class="mono">b402</span></h3>
+        <p>按币安规范实现完整客户端，含 RSA-SHA256 请求签名。等接入权限落地即可启用。</p>
+      </div>
+    </div>
+
+    <p class="quote mt-56">
+      切换只需一个环境变量，<span class="quote--brand">而付款方完全无感</span>——
+      它只读 402 响应里的 <span class="mono">extra.spenderAddress</span>。
+    </p>
+  </div>
+</section>
+
+<!-- ============ 07 创新点 2 ============ -->
+<section class="slide">
+  <div class="eyebrow"><strong>创新点 2 / 5</strong><span>07</span></div>
+
+  <div class="grow col center">
+    <div class="badge">互操作验证</div>
+    <h2 class="mt-24">用我们的客户端，付陌生人的账</h2>
+    <p class="lead mt-40">
+      仅有「发现」说明不了什么——Bazaar 上的挂牌只是元数据。
+      所以我们真的去调用别人挂上去的端点，解析对方返回的 402。
+      不花钱，因为 402 本身就是未付款状态的响应。
+    </p>
+
+    <div class="card card--tint mt-56">
+      <h3>做这件事时，暴露了我们自己的一个 Bug</h3>
+      <p class="mt-24">
+        那些端点的 <span class="mono" style="color:var(--ink)">body</span> 和
+        <span class="mono" style="color:var(--ink)">header</span> 内容不一致：
+        body 为向后兼容写的是 x402 v1 / Base 链，
+        而 <span class="mono" style="color:var(--ink)">PAYMENT-REQUIRED</span> 头里写的是 v2，
+        并且包含 BNB Smart Chain。
+      </p>
+      <p class="mt-24">
+        我们的客户端原本只读 body，于是一个<strong>本可以支付</strong>的端点被判成「不支持的方案」。
+        改为优先读 header 后，四个被探测端点全部报告兼容——
+        而只读 body 的版本曾错误标记出四处网络不匹配和四处版本不匹配。
+      </p>
+    </div>
+
+    <div class="metrics mt-56">
+      <div>
+        <div class="metric__label">修复前</div>
+        <div class="metric__value" style="color:var(--danger)">0 / 4</div>
+        <div class="metric__hint">判定可付款</div>
+      </div>
+      <div>
+        <div class="metric__label">修复后</div>
+        <div class="metric__value metric__value--success">4 / 4</div>
+        <div class="metric__hint">v2 · eip155:56 · 挂牌价与实时报价一致</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 08 创新点 3 ============ -->
+<section class="slide">
+  <div class="eyebrow"><strong>创新点 3 / 5</strong><span>08</span></div>
+
+  <h2 class="mt-24">持仓量，是价格说不出的那部分</h2>
+  <p class="lead mt-24">
+    价格只能告诉你「发生了什么」。价格配合持仓量方向，才能说明「是谁在推动」。
+  </p>
+
+  <table class="mt-56">
+    <tr>
+      <th style="width:150px">价格</th>
+      <th style="width:180px">持仓量</th>
+      <th style="width:280px">市场状态</th>
+      <th>含义</th>
+    </tr>
+    <tr>
+      <td class="num" style="color:var(--success)">↑ 涨</td>
+      <td class="num" style="color:var(--success)">↑ 增</td>
+      <td><strong>多头建仓</strong></td>
+      <td>新钱进场，四种状态里延续性最强</td>
+    </tr>
+    <tr>
+      <td class="num" style="color:var(--danger)">↓ 跌</td>
+      <td class="num" style="color:var(--success)">↑ 增</td>
+      <td><strong>空头建仓</strong></td>
+      <td>新开空头仓位，而非多头平仓离场</td>
+    </tr>
+    <tr>
+      <td class="num" style="color:var(--success)">↑ 涨</td>
+      <td class="num" style="color:var(--danger)">↓ 减</td>
+      <td><strong>空头挤压</strong></td>
+      <td>空头回补；被迫买盘出清后往往后继无力</td>
+    </tr>
+    <tr>
+      <td class="num" style="color:var(--danger)">↓ 跌</td>
+      <td class="num" style="color:var(--danger)">↓ 减</td>
+      <td><strong>多头平仓</strong></td>
+      <td>认赔离场；这类下跌通常会自行衰竭</td>
+    </tr>
+  </table>
+
+  <div class="card card--brand mt-56">
+    <h3>建仓顺势，挤压与平仓逆势</h3>
+    <p>
+      后两者都是平仓行为——被迫参与者出清后就没人推了。
+      这个判断在报告的方向权重里占 <span class="mono" style="color:var(--ink)">0.30</span>，
+      高于 24 小时涨跌的 <span class="mono" style="color:var(--ink)">0.18</span>。
+    </p>
+  </div>
+</section>
+
+<!-- ============ 09 创新点 4 ============ -->
+<section class="slide">
+  <div class="eyebrow"><strong>创新点 4 / 5</strong><span>09</span></div>
+
+  <div class="grow col center">
+    <div class="badge">评分诚实性</div>
+    <h2 class="mt-24">评级按「实际可用权重」归一化</h2>
+
+    <p class="lead mt-40">
+      信号扫描 Agent 和盘口 Agent 是<strong style="color:var(--ink)">并行</strong>执行的，
+      所以它永远拿不到盘口失衡数据。
+    </p>
+
+    <div class="row mt-56">
+      <div class="card" style="flex:1;border-color:var(--danger)">
+        <div class="badge badge--danger">曾经的做法</div>
+        <h3 class="mt-24">缺失分项当 0 分</h3>
+        <p>
+          那个分项恒为 0 却仍占 10% 权重，系统性压低<strong>每一个</strong>评级。
+          「数据没取到」被当成了「信号很弱」。
+        </p>
+      </div>
+      <div class="card" style="flex:1;border-color:var(--success)">
+        <div class="badge badge--success">现在的做法</div>
+        <h3 class="mt-24">分项声明数据是否到位</h3>
+        <p>
+          综合分只除以实际到位的权重。被排除的分项在界面上<strong>变暗显示而非隐藏</strong>——
+          藏掉会让权重看起来加不到 100%。
+        </p>
+      </div>
+    </div>
+
+    <div class="card card--tint mt-56">
+      <p>
+        实测一次运行：6 个分项中 5 个可用，权重 0.90，盘口失衡被排除并标注原因。
+        评级从受污染的分数回到真实值。
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 10 创新点 5 ============ -->
+<section class="slide">
+  <div class="eyebrow"><strong>创新点 5 / 5</strong><span>10</span></div>
+
+  <div class="grow col center">
+    <div class="badge">工程难点</div>
+    <h2 class="mt-24">并行结算，在 Serverless 下存活</h2>
+
+    <p class="lead mt-40">
+      五个 Agent 由同一个 relayer 地址并发付费。viem 为每笔交易各自去取 pending nonce，
+      于是并发交易读到同一个值，RPC 只接受其中一笔。
+    </p>
+
+    <div class="code mt-56"><span class="c">// 进程内：序列化 nonce 分配，保持广播并行</span>
+allocateNonce() <span class="c">→ 承诺链，读-改-写原子化</span>
+
+<span class="c">// 跨实例：每个 Agent 端点是独立的 serverless 实例，</span>
+<span class="c">// 兄弟实例的预留不可见 —— 所以碰撞后重试</span>
+settle() <span class="k">retry</span> <span class="w">on</span> nonce_collision <span class="c">（抖动退避，最多 5 次）</span></div>
+
+    <p class="lead mt-56">
+      只有 nonce 冲突会重试。转账 revert 或授权过期每次都会同样失败，重试只是白烧 Gas。
+    </p>
+
+    <div class="card card--tint mt-40">
+      <h3>这是只在生产环境出现的故障</h3>
+      <p>
+        本地单个 dev server 共享一份缓存，所以从未复现。
+        生产环境第一次跑出 3/6，靠新增的诊断端点才定位到。
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 11 A-E 评级 ============ -->
+<section class="slide">
+  <div class="eyebrow"><strong>产出</strong><span>11</span></div>
+
+  <h2 class="mt-24">A 到 E 评级，附完整分项</h2>
+  <p class="lead mt-24">
+    评级不可审计就只是一个可以争论的数字。所以分项、权重、以及每项的实测读数全部展示。
+  </p>
+
+  <div class="row mt-56 items-center">
+    <div class="grade">
+      <svg viewBox="0 0 100 100">
+        <path d="M52 13C29 11 12 27 13 49c1 21 18 36 39 36 22 0 38-16 37-38C88 26 73 12 52 13c-4 0-9 1-13 3"
+              fill="none" stroke="#0F9D58" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+        <path d="M40 17c-15 6-24 19-23 33 1 16 13 28 29 31"
+              fill="none" stroke="#0F9D58" stroke-width="3.2" stroke-linecap="round" opacity="0.55"/>
+        <path d="M52 13C29 11 12 27 13 49c1 21 18 36 39 36 22 0 38-16 37-38C88 26 73 12 52 13c-4 0-9 1-13 3"
+              fill="none" stroke="#0F9D58" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="2 11" opacity="0.4"/>
+      </svg>
+      <div class="grade__letter" style="color:#0B6B3C">A</div>
+    </div>
+
+    <div style="flex:1">
+      <table>
+        <tr>
+          <th style="width:320px">分项</th>
+          <th style="width:160px">权重</th>
+          <th>说明</th>
+        </tr>
+        <tr><td><strong>持仓量趋势</strong></td><td class="num">0.26</td><td>窗口内持仓量变动幅度</td></tr>
+        <tr><td><strong>持仓量异动</strong></td><td class="num">0.22</td><td>最新读数偏离近期均值多少个标准差</td></tr>
+        <tr><td><strong>主动成交压力</strong></td><td class="num">0.18</td><td>买卖比，判断谁是主动方</td></tr>
+        <tr><td><strong>资金费率偏斜</strong></td><td class="num">0.14</td><td>拥挤度税：极端费率标记拥挤的一侧</td></tr>
+        <tr><td><strong>大户持仓偏斜</strong></td><td class="num">0.10</td><td>最大持仓账户的多空比</td></tr>
+        <tr><td><strong>盘口失衡</strong></td><td class="num">0.10</td><td>现货侧确认（并行执行时可能缺失）</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="card card--tint mt-40">
+    <p>
+      评级带刻意的严格：A 必须罕见到有意义。波动率越高，同样的信号折价越多——噪声地板更高。
+      徽章是毛笔手绘圈：两条重叠描边加干笔飞白，因为真实笔锋不会干净收口。
+    </p>
+  </div>
+</section>
+
+<!-- ============ 12 下单预览与权限 ============ -->
+<section class="slide">
+  <div class="eyebrow"><strong>产出</strong><span>12</span></div>
+
+  <div class="grow col center">
+    <h2>网络出售决策，扳机在你手上</h2>
+    <p class="lead mt-40">
+      报告 Agent 输出可执行的订单参数：方向、挂在价差内侧的限价、按波动率缩放的止损、2:1 的目标位。
+      然后就停在这里。
+    </p>
+
+    <div class="row mt-56">
+      <div class="card" style="flex:1">
+        <h3>限价挂在价差内侧</h3>
+        <p>避免主动成交吃掉盘口分析刚刚赚来的那点边际。</p>
+      </div>
+      <div class="card" style="flex:1">
+        <h3>止损跟随实测波动率</h3>
+        <p>固定百分比在快市太窄、在慢市太宽。按日波动率 ×1.5 缩放。</p>
+      </div>
+      <div class="card" style="flex:1">
+        <h3>无边际则不出单</h3>
+        <p>方向为中性时不提任何交易。硬凑一笔会与刚付费得到的分析自相矛盾。</p>
+      </div>
+    </div>
+
+    <div class="card card--brand mt-56">
+      <h3>为什么停在这里，是设计而非未完成</h3>
+      <p class="mt-24">
+        项目只申请 <span class="mono" style="color:var(--ink)">market_data</span> 与
+        <span class="mono" style="color:var(--ink)">account</span> 两个只读权限。
+        真正下单需要 Agent OS 的 <span class="mono" style="color:var(--ink)">trade</span> 权限——
+        我们没有申请，因此代码里<strong>不存在任何能提交订单的路径</strong>。
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 13 链上证明 ============ -->
+<section class="slide">
+  <div class="eyebrow"><strong>验证</strong><span>13</span></div>
+
+  <h2 class="mt-24">每一笔都留下可核验的收据</h2>
+  <p class="lead mt-24">
+    生产环境实跑，BSC 测试网，六笔结算全部确认。任何人都可以在 BscScan 上独立核对。
+  </p>
+
+  <table class="mt-56">
+    <tr>
+      <th style="width:300px">Agent</th>
+      <th>结算交易哈希</th>
+    </tr>
+    <tr><td><strong>行情数据</strong></td><td class="hash">0x974b4d826eefa41d2b06c66a194e3a8f23da35d737d2fad205b184c25c1ce6fc</td></tr>
+    <tr><td><strong>盘口深度</strong></td><td class="hash">0x64b278e09c6b80153225e8e8c414cc7412c30d5c8c4af4bb842ae796f59f3e91</td></tr>
+    <tr><td><strong>动量</strong></td><td class="hash">0x040c7297df0b5707331d608b2e69a8b336671d12a3ae5c6b6ed1ef3d812091c6</td></tr>
+    <tr><td><strong>风险</strong></td><td class="hash">0x3824b6bc6e79606e4f200161bb0cb9067a51b09467a223467f433984f39b4ea3</td></tr>
+    <tr><td><strong>信号扫描</strong></td><td class="hash">0x91247a764fd265612d54b7da156532b1dc977d8cb360d4919a96cc99ae4c0239</td></tr>
+    <tr><td><strong>报告撰写</strong></td><td class="hash">0x702e525d75a79c91a5d19c96b64a147f16d83454b7358bc440b5a79609158222</td></tr>
+  </table>
+
+  <div class="metrics mt-56">
+    <div>
+      <div class="metric__label">结算成功</div>
+      <div class="metric__value metric__value--success">6 / 6</div>
+    </div>
+    <div>
+      <div class="metric__label">总花费</div>
+      <div class="metric__value metric__value--brand">$0.1450</div>
+    </div>
+    <div>
+      <div class="metric__label">总耗时</div>
+      <div class="metric__value">9.8s</div>
+    </div>
+    <div>
+      <div class="metric__label">发现的第三方端点</div>
+      <div class="metric__value">6</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 14 技术栈 ============ -->
+<section class="slide">
+  <div class="eyebrow"><strong>实现</strong><span>14</span></div>
+
+  <h2 class="mt-24">技术栈与代码结构</h2>
+
+  <div class="row mt-56">
+    <div style="flex:1">
+      <div class="code" style="font-size:21px">src/lib/x402/          <span class="c">协议层</span>
+  types.ts             <span class="c">x402 v2 线格式</span>
+  permit2.ts           <span class="c">EIP-712 签名</span>
+  verify.ts            <span class="c">离链验证</span>
+  settle.ts            <span class="c">链上结算 + 碰撞重试</span>
+  nonce.ts             <span class="c">relayer nonce 分配</span>
+  facilitator.ts       <span class="c">self / b402 双实现切换</span>
+  paywall.ts           <span class="c">402 守卫中间件</span>
+
+src/lib/agents/        <span class="c">业务层</span>
+  registry.ts          <span class="c">Agent 目录与定价</span>
+  futures.ts           <span class="c">合约持仓量 / 资金费率</span>
+  signals.ts           <span class="c">A–E 评分</span>
+  orchestrator.ts      <span class="c">编排 + 并行付费</span>
+  interop.ts           <span class="c">跨厂商探测</span>
+
+contracts/MeshUSD.sol  <span class="c">测试网结算代币</span></div>
+    </div>
+
+    <div style="flex:1" class="col">
+      <div class="card">
+        <h3>前端</h3>
+        <p>Next.js 16 · React 19 · TypeScript strict · Tailwind v4 · viem 2.x</p>
+      </div>
+      <div class="card mt-24">
+        <h3>链上</h3>
+        <p>BNB Smart Chain · Uniswap 官方 Permit2 部署 · relayer 代付 Gas</p>
+      </div>
+      <div class="card mt-24">
+        <h3>数据源</h3>
+        <p>
+          现货行情、盘口、K 线、合约持仓量、资金费率、主动成交比、B402 Bazaar 公开目录
+        </p>
+      </div>
+      <div class="card mt-24">
+        <h3>部署</h3>
+        <p>
+          Vercel（区域固定 hnd1）· 多主机回退绕过地域封锁 · 诊断端点暴露上游可达性
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 15 界面 ============ -->
+<section class="slide">
+  <div class="eyebrow"><strong>体验</strong><span>15</span></div>
+
+  <h2 class="mt-24">浏览器里能看到什么</h2>
+
+  <div class="row mt-56">
+    <div class="card" style="flex:1">
+      <h3>实时 K 线</h3>
+      <p>REST 初始化，WebSocket 推送。缓动 y 轴与脉冲前沿——报告是快照，市场一直在动。</p>
+    </div>
+    <div class="card" style="flex:1">
+      <h3>交易对搜索</h3>
+      <p>834 个现货交易对实时来自 exchangeInfo，其中 179 个标记为币安 Alpha，可筛选。</p>
+    </div>
+    <div class="card" style="flex:1">
+      <h3>支付拓扑</h3>
+      <p>连线只在结算真的在途时才流动——屏幕上动的东西对应着真实的资金流动。</p>
+    </div>
+  </div>
+
+  <div class="row mt-40">
+    <div class="card" style="flex:1">
+      <h3>协议日志</h3>
+      <p>每个 x402 事件逐条呈现。悬停暂停自动跟随并明确说明，而不是把列表从光标下抽走。</p>
+    </div>
+    <div class="card" style="flex:1">
+      <h3>PDF 导出</h3>
+      <p>jsPDF 矢量绘制，文字可选中。动态导入，350KB 不进首屏包。</p>
+    </div>
+    <div class="card" style="flex:1">
+      <h3>中英双语</h3>
+      <p>类型化字典 + Context，无 i18n 库。报告本身在服务端就生成双语。</p>
+    </div>
+  </div>
+
+  <div class="card card--tint mt-40">
+    <h3>协议术语在两种语言下都保持英文</h3>
+    <p>
+      <span class="mono" style="color:var(--ink)">402 Payment Required</span>、
+      <span class="mono" style="color:var(--ink)">EIP-712</span>、
+      <span class="mono" style="color:var(--ink)">Permit2</span>、错误码。
+      翻译线格式会歪曲报文的实际内容。
+    </p>
+  </div>
+</section>
+
+<!-- ============ 16 路线图 ============ -->
+<section class="slide">
+  <div class="eyebrow"><strong>路线图</strong><span>16</span></div>
+
+  <h2 class="mt-24">当前已上线，以及接下来</h2>
+
+  <table class="mt-56">
+    <tr>
+      <th style="width:220px">状态</th>
+      <th style="width:400px">能力</th>
+      <th>说明</th>
+    </tr>
+    <tr>
+      <td><span class="badge badge--success">已上线</span></td>
+      <td><strong>B402 Bazaar 发现</strong></td>
+      <td>公开目录，每次运行实时查询，无需凭证</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge--success">已上线</span></td>
+      <td><strong>跨厂商支付验证</strong></td>
+      <td>解析第三方端点的 402 挑战，x402 v2 on BNB Smart Chain</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge--success">已上线</span></td>
+      <td><strong>Permit2 链上结算</strong></td>
+      <td>真实转账，Gas 由 facilitator 代付</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge--success">已上线</span></td>
+      <td><strong>下单预览</strong></td>
+      <td>可执行参数，标记为等待人工确认</td>
+    </tr>
+    <tr>
+      <td><span class="badge">敬请期待</span></td>
+      <td><strong>Agent OS MCP</strong></td>
+      <td>OAuth 2.1 + PKCE 已端到端实现；币安目前仅接入固定名单内的客户端</td>
+    </tr>
+    <tr>
+      <td><span class="badge">敬请期待</span></td>
+      <td><strong>B402 Facilitator</strong></td>
+      <td>含 RSA-SHA256 签名的客户端已就绪，商户接入后即可启用</td>
+    </tr>
+    <tr>
+      <td><span class="badge">敬请期待</span></td>
+      <td><strong>Bazaar 上架</strong></td>
+      <td>把自有 Agent 挂上去，让第三方也能发现并付费调用</td>
+    </tr>
+  </table>
+
+  <p class="lead mt-40">
+    「敬请期待」的三项代码都已写好，等的是接入权限，而不是开发工作量。
+  </p>
+</section>
+
+<!-- ============ 17 结尾 ============ -->
+<section class="slide">
+  <div class="gridbg"></div>
+  <div class="accent"></div>
+
+  <div class="eyebrow"><strong>AgentMesh</strong><span>17</span></div>
+
+  <div class="grow col center">
+    <h2>Agent 经济需要的不是更强的模型</h2>
+    <h2 style="color:var(--brand)">而是一条能自己走通的支付通道</h2>
+
+    <p class="lead mt-56">
+      AgentMesh 把这条通道跑通了：真实的链上结算、可核验的收据、
+      以及一个能读懂陌生人报价的客户端。
+    </p>
+
+    <div class="row mt-72">
+      <div class="card" style="flex:1">
+        <div class="metric__label">线上演示</div>
+        <p class="mono mt-24" style="font-size:26px;color:var(--brand)">agentmesh-x402.vercel.app</p>
+      </div>
+      <div class="card" style="flex:1">
+        <div class="metric__label">开源代码</div>
+        <p class="mono mt-24" style="font-size:26px;color:var(--brand)">github.com/gunksd/agentmesh-x402</p>
+      </div>
+    </div>
+  </div>
+
+  <p class="footnote mt-auto">
+    演示软件，默认测试网，未经审计，不构成投资建议。<br>
+    Binance Agent OS Mini Hackathon · x402 v2 on BNB Smart Chain
+  </p>
+</section>
+
+</body>
+</html>

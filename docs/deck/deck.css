@@ -1,0 +1,326 @@
+/*
+ * AgentMesh 演示文稿样式
+ *
+ * 16:9 固定尺寸 1920×1080，每页一个 <section>。固定尺寸而非响应式，
+ * 因为这份 deck 的最终形态是 PDF 和 PNG 导出，版面必须可预测。
+ *
+ * 配色沿用项目本身的设计 token，让 deck 和产品看起来是同一件东西。
+ */
+
+:root {
+  --brand: #0b63f6;
+  --brand-hover: #0a56d8;
+  --brand-soft: #e8f0fe;
+  --ink: #0a1628;
+  --muted: #5b6b85;
+  --subtle: #8a99b3;
+  --border: #e3eaf5;
+  --border-strong: #cfdcf0;
+  --surface: #f6f9fe;
+  --success: #0f9d58;
+  --success-soft: #e6f6ee;
+  --warning: #b7791f;
+  --warning-soft: #fdf6e3;
+  --danger: #d93025;
+  --danger-soft: #fdecea;
+
+  --sans: "PingFang SC", "Hiragino Sans GB", system-ui, -apple-system, sans-serif;
+  --mono: ui-monospace, "SF Mono", "Geist Mono", Menlo, monospace;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  background: #6b7280;
+}
+
+body {
+  font-family: var(--sans);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 每页固定 1920×1080，居中排列，页间留出深色间隔以便浏览时区分 */
+.slide {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+  margin: 0 auto 32px;
+  padding: 68px 96px;
+  background: #fff;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 导出 PDF 时去掉间隔与背景，一页一张 */
+@media print {
+  html {
+    background: #fff;
+  }
+  .slide {
+    margin: 0;
+    page-break-after: always;
+    break-after: page;
+  }
+}
+
+/* 页眉：左侧栏目名，右侧页码 */
+.eyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--subtle);
+}
+
+.eyebrow strong {
+  color: var(--brand);
+  font-weight: 600;
+}
+
+/* 标题层级：h1 仅封面用，h2 为常规页标题 */
+h1 {
+  font-size: 104px;
+  line-height: 1.03;
+  letter-spacing: -0.03em;
+  font-weight: 650;
+}
+
+h2 {
+  font-size: 56px;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  font-weight: 650;
+}
+
+h3 {
+  font-size: 29px;
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+.lead {
+  font-size: 29px;
+  line-height: 1.5;
+  color: var(--muted);
+  max-width: 1400px;
+}
+
+.mono {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 布局工具 ---------- */
+
+.grow { flex: 1; }
+.center { justify-content: center; }
+.row { display: flex; gap: 28px; }
+.col { display: flex; flex-direction: column; }
+.between { justify-content: space-between; }
+.items-end { align-items: flex-end; }
+.items-center { align-items: center; }
+
+.mt-auto { margin-top: auto; }
+.mt-24 { margin-top: 20px; }
+.mt-40 { margin-top: 30px; }
+.mt-56 { margin-top: 40px; }
+.mt-72 { margin-top: 50px; }
+
+/* ---------- 标签 ---------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-size: 19px;
+  font-weight: 600;
+  background: var(--brand-soft);
+  color: var(--brand-hover);
+  width: fit-content;
+}
+
+.badge--success { background: var(--success-soft); color: var(--success); }
+.badge--warning { background: var(--warning-soft); color: var(--warning); }
+.badge--danger  { background: var(--danger-soft);  color: var(--danger); }
+.badge--plain   { background: var(--surface); color: var(--muted); }
+
+/* ---------- 卡片 ---------- */
+
+.card {
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: #fff;
+  padding: 30px;
+  box-shadow: 0 1px 2px rgba(10,22,40,0.04), 0 12px 32px -20px rgba(10,22,40,0.12);
+}
+
+.card--tint { background: var(--surface); }
+.card--brand { border-color: var(--brand); background: var(--brand-soft); }
+
+.card h3 { margin-bottom: 11px; }
+.card p { font-size: 22px; line-height: 1.48; color: var(--muted); }
+
+/* ---------- 指标 ---------- */
+
+.metrics { display: flex; gap: 56px; }
+
+.metric__label {
+  font-size: 18px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--subtle);
+}
+
+.metric__value {
+  font-family: var(--mono);
+  font-size: 50px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  margin-top: 10px;
+}
+
+.metric__value--brand { color: var(--brand); }
+.metric__value--success { color: var(--success); }
+
+.metric__hint { font-size: 18px; color: var(--subtle); margin-top: 6px; }
+
+/* ---------- 表格 ---------- */
+
+table { width: 100%; border-collapse: collapse; font-size: 22px; }
+
+th {
+  text-align: left;
+  font-size: 17px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--subtle);
+  font-weight: 600;
+  padding: 0 18px 14px 0;
+  border-bottom: 2px solid var(--border-strong);
+}
+
+td {
+  padding: 15px 18px 15px 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  vertical-align: top;
+}
+
+td strong { color: var(--ink); font-weight: 600; }
+tr:last-child td { border-bottom: none; }
+
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* ---------- 步骤条 ---------- */
+
+.steps { display: flex; gap: 20px; }
+
+.step {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 26px 22px;
+  background: #fff;
+}
+
+.step__n {
+  font-family: var(--mono);
+  font-size: 22px;
+  font-weight: 650;
+  color: var(--brand);
+}
+
+.step h3 { font-size: 25px; margin: 11px 0 9px; }
+.step p { font-size: 19px; line-height: 1.45; color: var(--muted); }
+
+/* ---------- 代码块 ---------- */
+
+.code {
+  font-family: var(--mono);
+  font-size: 21px;
+  line-height: 1.6;
+  background: var(--ink);
+  color: #e6edf7;
+  border-radius: 18px;
+  padding: 28px 32px;
+  overflow: hidden;
+  white-space: pre;
+}
+
+.code .c { color: #7f92ad; }
+.code .k { color: #7fb0ff; }
+.code .s { color: #7ee2b8; }
+.code .w { color: #f0c674; }
+
+/* ---------- 封面装饰网格 ---------- */
+
+.gridbg {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, var(--border) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+  background-size: 96px 96px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 66% at 50% 0%, #000 36%, transparent 76%);
+  mask-image: radial-gradient(ellipse 80% 66% at 50% 0%, #000 36%, transparent 76%);
+  pointer-events: none;
+}
+
+/* 封面右下角的强调块 */
+.accent {
+  position: absolute;
+  right: -120px;
+  bottom: -180px;
+  width: 720px;
+  height: 720px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(11,99,246,0.14), transparent 68%);
+  pointer-events: none;
+}
+
+/* ---------- 评级徽章（毛笔圈） ---------- */
+
+.grade { position: relative; width: 112px; height: 112px; flex-shrink: 0; }
+.grade svg { width: 100%; height: 100%; }
+
+.grade__letter {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 47px;
+  font-weight: 700;
+  transform: translate(2px, 2px);
+}
+
+/* ---------- 引用 / 结论 ---------- */
+
+.quote {
+  font-size: 34px;
+  line-height: 1.42;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  max-width: 1500px;
+}
+
+.quote--brand { color: var(--brand); }
+
+.footnote { font-size: 20px; color: var(--subtle); line-height: 1.5; }
+
+.hash {
+  font-family: var(--mono);
+  font-size: 17px;
+  color: var(--success);
+  word-break: break-all;
+}
